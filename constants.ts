@@ -5,4 +5,4 @@ export const EXAMPLE_PROMPTS = [
   "A Kanban-style project management tool",
 ];
 
-export const DAILY_GENERATION_LIMIT = 3;
+export const DAILY_GENERATION_LIMIT = 5;

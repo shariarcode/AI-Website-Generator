@@ -2,26 +2,25 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import PromptForm from './components/PromptForm';
-import PreviewModal from './components/PreviewModal';
+import EditorModal from './components/EditorModal';
 import AuthModal from './components/AuthModal';
-import { useDailyLimit } from './hooks/useDailyLimit';
-import { generateWebsite } from './services/geminiService';
+import { generateWebsite, chatInEditor } from './services/geminiService';
+import { ChatMessage, ImageFile } from './types';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
   const [prompt, setPrompt] = useState('');
+  const [image, setImage] = useState<ImageFile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-
-  const { remainingGenerations, decrementLimit, hasGenerationsLeft } = useDailyLimit();
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
+  const [isModifying, setIsModifying] = useState(false);
 
   useEffect(() => {
-    // Set initial theme based on localStorage or system preference, but default to dark
     const storedTheme = localStorage.getItem('theme');
     if (storedTheme) {
       setIsDarkMode(storedTheme === 'dark');
@@ -44,7 +43,7 @@ const App: React.FC = () => {
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || isLoading || !hasGenerationsLeft) {
+    if (!prompt.trim() || isLoading) {
       return;
     }
 
@@ -52,16 +51,54 @@ const App: React.FC = () => {
     setError(null);
 
     try {
-      const html = await generateWebsite(prompt);
+      const html = await generateWebsite(prompt, image);
       setGeneratedHtml(html);
-      setIsModalOpen(true);
-      decrementLimit();
+      setChatHistory([{
+        role: 'model',
+        text: "Here is the website I generated. Let me know if you'd like to make any changes!"
+      }]);
+      setIsEditorOpen(true);
     } catch (err: any) {
       setError(err.message || 'An unknown error occurred.');
     } finally {
       setIsLoading(false);
     }
-  }, [prompt, isLoading, hasGenerationsLeft, decrementLimit]);
+  }, [prompt, isLoading, image]);
+
+  const handleEditorChatSubmit = useCallback(async (instruction: string) => {
+    if (!instruction.trim() || isModifying || !generatedHtml) return;
+
+    setIsModifying(true);
+    setError(null);
+
+    const userMessage: ChatMessage = { role: 'user', text: instruction };
+    const newHistory: ChatMessage[] = [...chatHistory, userMessage];
+    setChatHistory(newHistory);
+
+    try {
+      const { response, html } = await chatInEditor(generatedHtml, newHistory, instruction);
+      
+      if (html && html.trim() !== '') {
+        setGeneratedHtml(html);
+      }
+
+      setChatHistory(prev => [...prev, {
+        role: 'model',
+        text: response
+      }]);
+
+    } catch (err: any) {
+      const typedError = err as Error;
+      setError(typedError.message || 'An unknown error occurred during chat.');
+      setChatHistory(prev => [...prev, {
+        role: 'model',
+        text: `I encountered an error: ${typedError.message}`
+      }]);
+    } finally {
+      setIsModifying(false);
+    }
+  }, [generatedHtml, isModifying, chatHistory]);
+
 
   const handleSignIn = () => {
     setIsAuthenticated(true);
@@ -106,8 +143,8 @@ const App: React.FC = () => {
                 setPrompt={setPrompt}
                 handleGenerate={handleGenerate}
                 isLoading={isLoading}
-                hasGenerationsLeft={hasGenerationsLeft}
-                remainingGenerations={remainingGenerations}
+                image={image}
+                setImage={setImage}
             />
             </div>
             
@@ -119,10 +156,13 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {isModalOpen && generatedHtml && (
-        <PreviewModal 
+      {isEditorOpen && generatedHtml && (
+        <EditorModal 
           htmlContent={generatedHtml} 
-          onClose={() => setIsModalOpen(false)} 
+          onClose={() => setIsEditorOpen(false)}
+          chatHistory={chatHistory}
+          onSendMessage={handleEditorChatSubmit}
+          isModifying={isModifying}
         />
       )}
 

@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { EXAMPLE_PROMPTS } from '../constants';
 import LinkIcon from './icons/LinkIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import ImageIcon from './icons/ImageIcon';
 import { enhancePrompt } from '../services/geminiService';
+import { ImageFile } from '../types';
+import CloseIcon from './icons/CloseIcon';
 
 interface PromptFormProps {
   prompt: string;
   setPrompt: (prompt: string) => void;
   handleGenerate: () => void;
   isLoading: boolean;
-  hasGenerationsLeft: boolean;
-  remainingGenerations: number;
+  image: ImageFile | null;
+  setImage: (image: ImageFile | null) => void;
 }
 
 const LoadingSpinner: React.FC<{className?: string}> = ({ className = "text-white" }) => (
@@ -26,10 +28,11 @@ const PromptForm: React.FC<PromptFormProps> = ({
   setPrompt,
   handleGenerate,
   isLoading,
-  hasGenerationsLeft,
-  remainingGenerations,
+  image,
+  setImage,
 }) => {
-  const isButtonDisabled = isLoading || !hasGenerationsLeft || !prompt.trim();
+  const isButtonDisabled = isLoading || !prompt.trim();
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhanceError, setEnhanceError] = useState<string | null>(null);
@@ -49,6 +52,33 @@ const PromptForm: React.FC<PromptFormProps> = ({
     }
   };
 
+  const handleImageUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        alert('Please select a valid image file (JPEG, PNG, WEBP).');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImage({
+          data: reader.result as string,
+          mimeType: file.type,
+          name: file.name
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset file input value to allow re-uploading the same file
+    if (e.target) {
+        e.target.value = '';
+    }
+  };
+
   const handleComingSoonClick = () => {
     alert("Feature coming soon!");
   };
@@ -56,18 +86,42 @@ const PromptForm: React.FC<PromptFormProps> = ({
   return (
     <div className="w-full max-w-3xl text-center">
       <div className="relative mb-4 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-xl shadow-lg transition-colors">
+        {image && (
+          <div className="p-3 border-b border-light-border dark:border-dark-border">
+            <div className="bg-light-bg dark:bg-dark-bg rounded-lg p-2 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <img src={image.data} alt="Preview" className="w-12 h-12 object-cover rounded-md" />
+                    <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{image.name}</span>
+                </div>
+                <button 
+                    onClick={() => setImage(null)} 
+                    className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-gray-200 dark:hover:bg-dark-border transition-colors"
+                    aria-label="Remove image"
+                >
+                    <CloseIcon className="w-5 h-5"/>
+                </button>
+            </div>
+          </div>
+        )}
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Type your idea and we'll bring it to life..."
           className="w-full h-36 p-4 pt-4 pb-12 bg-transparent text-lg text-light-text-primary dark:text-dark-text-primary rounded-xl focus:ring-2 focus:ring-brand-blue focus:outline-none resize-none transition-colors"
-          disabled={!hasGenerationsLeft || isLoading || isEnhancing}
+          disabled={isLoading || isEnhancing}
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               if (!isButtonDisabled) handleGenerate();
             }
           }}
+        />
+        <input 
+            type="file" 
+            ref={fileInputRef} 
+            onChange={handleImageChange} 
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
         />
         <div className="absolute bottom-4 left-4 flex items-center gap-3">
           <button onClick={handleComingSoonClick} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label="Attach link" disabled={isLoading || isEnhancing}><LinkIcon className="w-5 h-5"/></button>
@@ -76,7 +130,7 @@ const PromptForm: React.FC<PromptFormProps> = ({
             {isEnhancing ? <LoadingSpinner className="text-light-text-secondary dark:text-dark-text-secondary" /> : <SparklesIcon className="w-5 h-5"/>}
           </button>
 
-          <button onClick={handleComingSoonClick} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label="Upload image" disabled={isLoading || isEnhancing}><ImageIcon className="w-5 h-5"/></button>
+          <button onClick={handleImageUploadClick} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label="Upload image" disabled={isLoading || isEnhancing || !!image}><ImageIcon className="w-5 h-5"/></button>
         </div>
         {enhanceError && <p className="absolute text-xs text-red-400 bottom-[-20px] left-4">{enhanceError}</p>}
       </div>
@@ -97,7 +151,7 @@ const PromptForm: React.FC<PromptFormProps> = ({
             <button
               key={p}
               onClick={() => setPrompt(p)}
-              disabled={!hasGenerationsLeft || isLoading || isEnhancing}
+              disabled={isLoading || isEnhancing}
               className="px-4 py-2 text-sm text-light-text-secondary dark:text-dark-text-secondary bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-full hover:bg-gray-200 dark:hover:bg-dark-border disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {p}
@@ -107,11 +161,7 @@ const PromptForm: React.FC<PromptFormProps> = ({
       </div>
       
       <div className="mt-6 text-sm text-light-text-secondary dark:text-dark-text-secondary h-5">
-        {!hasGenerationsLeft && (
-          <p className="font-semibold text-yellow-500 dark:text-yellow-400">
-            You've used all your free generations. Come back tomorrow for more!
-          </p>
-        )}
+        {/* Daily limit message removed */}
       </div>
 
     </div>
