@@ -131,7 +131,7 @@ const App: React.FC = () => {
       <main className="relative z-10 flex-grow flex items-center justify-center container mx-auto px-4 pt-24 pb-8">
         <div className="w-full max-w-3xl text-center">
             <h2 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            What do you want to build? <span className="font-medium text-light-text-secondary dark:text-dark-text-secondary">(by Tamim)</span>
+            What do you want to build? <span className="font-medium text-light-text-secondary dark:text-dark-text-secondary">(with Tamim)</span>
             </h2>
             <p className="mt-4 max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 dark:text-dark-text-secondary">
             Create stunning apps & websites by chatting with AI.
