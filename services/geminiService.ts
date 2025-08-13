@@ -1,26 +1,10 @@
+
 import { GoogleGenAI } from "@google/genai";
 
-// Safely get the API key to prevent a ReferenceError if 'process' is not defined.
-const getApiKey = (): string | undefined => {
-    try {
-        if (typeof process !== 'undefined' && process.env && process.env.API_KEY) {
-            return process.env.API_KEY;
-        }
-        return undefined;
-    } catch (e) {
-        console.error("Error accessing process.env:", e);
-        return undefined;
-    }
-};
-
-const apiKey = getApiKey();
-
-if (!apiKey) {
-    console.error("API_KEY environment variable not found. AI functionality will be disabled.");
-}
-
-// Initialize the AI client only if the API key is available.
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+// The build process replaces `process.env.API_KEY` with the actual key.
+// As per instructions, we assume it's always available and valid.
+// If not, the SDK will throw an error on API calls, which is handled below.
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 const SYSTEM_INSTRUCTION_GENERATE = `You are an expert web developer who specializes in creating stunning, single-page websites. 
 Your task is to generate a complete, self-contained 'index.html' file based on a user's prompt.
@@ -51,11 +35,10 @@ Example Output: A visually stunning, minimalist portfolio website for a professi
 `;
 
 export const generateWebsite = async (prompt: string): Promise<string> => {
-  if (!ai) {
-    // If the AI client wasn't initialized, we can't proceed.
+  if (!process.env.API_KEY) {
     throw new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
   }
-
+  
   try {
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
@@ -78,17 +61,20 @@ export const generateWebsite = async (prompt: string): Promise<string> => {
     }
 
     return htmlContent.trim();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating website with Gemini:", error);
+    if (error.message?.toLowerCase().includes('api key')) {
+        throw new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
+    }
     throw new Error("Failed to generate website. The AI model might be busy. Please try again later.");
   }
 };
 
 export const enhancePrompt = async (prompt: string): Promise<string> => {
-  if (!ai) {
-    throw new Error("AI Service is not configured. Please ensure the API_KEY is set correctly.");
+  if (!process.env.API_KEY) {
+    throw new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
   }
-  
+
   if (!prompt || prompt.trim().length < 5) {
       throw new Error("Prompt is too short to enhance.");
   }
@@ -105,8 +91,11 @@ export const enhancePrompt = async (prompt: string): Promise<string> => {
     });
 
     return response.text.trim();
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error enhancing prompt with Gemini:", error);
+    if (error.message?.toLowerCase().includes('api key')) {
+        throw new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
+    }
     throw new Error("Failed to enhance prompt. The AI model might be busy.");
   }
 };
