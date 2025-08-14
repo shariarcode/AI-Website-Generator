@@ -31,10 +31,9 @@ interface FileExplorerProps {
     files: string[];
     activeFile: string | null;
     onFileSelect: (file: string) => void;
-    isTab?: boolean;
 }
 
-const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFile, onFileSelect, isTab = false }) => {
+const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFile, onFileSelect }) => {
     
     const sortedFiles = useMemo(() => {
         return [...files].sort((a, b) => {
@@ -55,7 +54,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFile, onFileSe
 
     return (
         <aside className="bg-dark-surface p-4 flex flex-col text-sm h-full">
-            {!isTab && <h3 className="font-bold text-dark-text-primary mb-4 text-base">Explorer</h3>}
+            <h3 className="font-bold text-dark-text-primary mb-4 text-base">Explorer</h3>
             <div className="flex-grow overflow-y-auto">
                 {sortedFiles.length > 0 ? (
                     <ul>
@@ -63,7 +62,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFile, onFileSe
                             <li key={file}>
                                 <button 
                                     onClick={() => onFileSelect(file)}
-                                    className={`w-full flex items-center gap-2 p-1.5 rounded-md text-left transition-colors ${activeFile === file ? 'bg-brand-blue/20 text-white' : 'hover:bg-dark-surface'}`}
+                                    className={`w-full flex items-center gap-2 p-1.5 rounded-md text-left transition-colors ${activeFile === file ? 'bg-brand-blue/20 text-white' : 'hover:bg-dark-bg'}`}
                                 >
                                     {getFileIcon(file)}
                                     <span className="truncate">{file}</span>

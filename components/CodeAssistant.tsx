@@ -44,7 +44,7 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({
     <div className="flex flex-col h-full bg-dark-surface">
       {!isTab && (
         <header className="flex-shrink-0 p-4 border-b border-dark-border h-[57px] flex items-center">
-            <h2 className="font-bold text-lg">Code Assistant</h2>
+            <h2 className="font-bold text-lg">AI Assistant</h2>
         </header>
       )}
 
@@ -58,7 +58,7 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({
       {/* The scrollable chat log. flex-1 allows it to grow, min-h-0 fixes scrolling in flexbox. */}
       <div ref={chatContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto min-h-0">
           {chatHistory.map((msg, index) => (
-              <div key={index} className="flex items-start gap-3">
+              <div key={index} className="flex items-start gap-3 chat-message-fade-in">
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-dark-bg flex items-center justify-center ${msg.role === 'model' ? 'text-brand-blue': ''}`}>
                       {msg.role === 'model' ? <SparklesIcon className="w-5 h-5" /> : <UserIcon className="w-5 h-5" />}
                   </div>

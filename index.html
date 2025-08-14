@@ -57,6 +57,22 @@
         padding: 1rem 0.5rem 1rem 1rem !important;
       }
       
+      /* Chat message animation */
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .chat-message-fade-in {
+        animation: fadeIn 0.4s ease-out forwards;
+      }
+
       /* Tailwind Prose overrides for markdown rendering */
       .prose-custom {
         color: #9CA3AF;

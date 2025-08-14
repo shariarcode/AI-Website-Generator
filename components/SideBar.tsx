@@ -6,16 +6,13 @@ import CodeAssistant from './CodeAssistant';
 import FileExplorer from './FileExplorer';
 import EyeIcon from './icons/EyeIcon';
 import SparklesIcon from './icons/SparklesIcon';
-import FolderIcon from './icons/FolderIcon';
 import { ChatMessage } from '../types';
 
-type ActiveTab = 'preview' | 'assistant' | 'explorer';
+type ActiveTab = 'preview' | 'assistant';
 
 interface SideBarProps {
   generationType: 'frontend' | 'backend';
   projectFiles: Record<string, string> | null;
-  activeFile: string | null;
-  onFileSelect: (file: string) => void;
   chatHistory: ChatMessage[];
   onSendMessage: (instruction: string) => void;
   isModifying: boolean;
@@ -61,16 +58,13 @@ const SideBar: React.FC<SideBarProps> = (props) => {
   );
 
   return (
-    <aside className="flex flex-col bg-dark-bg border-l border-dark-border">
+    <aside className="flex flex-col bg-dark-bg border-l border-dark-border h-full">
       <header className="flex-shrink-0 flex items-center border-b border-dark-border bg-dark-surface h-[45px]">
         <TabButton tabName="preview" currentTab={activeTab} setTab={setActiveTab} label={previewTabName}>
             <EyeIcon className="w-4 h-4" />
         </TabButton>
-        <TabButton tabName="assistant" currentTab={activeTab} setTab={setActiveTab} label="Assistant">
+        <TabButton tabName="assistant" currentTab={activeTab} setTab={setActiveTab} label="AI Assistant">
             <SparklesIcon className="w-4 h-4" />
-        </TabButton>
-        <TabButton tabName="explorer" currentTab={activeTab} setTab={setActiveTab} label="Explorer">
-            <FolderIcon className="w-4 h-4" />
         </TabButton>
       </header>
 
@@ -89,14 +83,6 @@ const SideBar: React.FC<SideBarProps> = (props) => {
             isModifying={props.isModifying}
             error={props.error}
             setError={props.setError}
-            isTab={true}
-          />
-        )}
-        {activeTab === 'explorer' && (
-          <FileExplorer
-            files={props.projectFiles ? Object.keys(props.projectFiles) : []}
-            activeFile={props.activeFile}
-            onFileSelect={props.onFileSelect}
             isTab={true}
           />
         )}

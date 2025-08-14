@@ -7,6 +7,7 @@ import { ChatMessage, ImageFile } from './types';
 import CodeEditor from './components/CodeEditor';
 import PromptForm from './components/PromptForm';
 import SideBar from './components/SideBar';
+import FileExplorer from './components/FileExplorer';
 
 type GenerationType = 'frontend' | 'backend';
 
@@ -196,24 +197,33 @@ const App: React.FC = () => {
   );
 
   const renderIdeView = () => (
-    <div className="flex-grow grid grid-cols-[minmax(0,_3fr),minmax(0,_2fr)] gap-px overflow-hidden border-t bg-dark-border border-dark-border">
-      <CodeEditor
-        projectFiles={projectFiles}
-        activeFile={activeFile}
-        onFileContentChange={handleFileContentChange}
-        generationType={generationType}
-      />
-      <SideBar
-        generationType={generationType}
-        projectFiles={projectFiles}
-        activeFile={activeFile}
-        onFileSelect={setActiveFile}
-        chatHistory={chatHistory}
-        onSendMessage={handleEditorChatSubmit}
-        isModifying={isModifying}
-        error={error}
-        setError={setError}
-      />
+    <div className="flex-grow grid grid-cols-12 gap-px overflow-hidden border-t bg-dark-border border-dark-border">
+      <div className="col-span-2">
+        <FileExplorer
+          files={projectFiles ? Object.keys(projectFiles) : []}
+          activeFile={activeFile}
+          onFileSelect={setActiveFile}
+        />
+      </div>
+      <div className="col-span-6">
+        <CodeEditor
+          projectFiles={projectFiles}
+          activeFile={activeFile}
+          onFileContentChange={handleFileContentChange}
+          generationType={generationType}
+        />
+      </div>
+      <div className="col-span-4">
+        <SideBar
+          generationType={generationType}
+          projectFiles={projectFiles}
+          chatHistory={chatHistory}
+          onSendMessage={handleEditorChatSubmit}
+          isModifying={isModifying}
+          error={error}
+          setError={setError}
+        />
+      </div>
     </div>
   );
 
