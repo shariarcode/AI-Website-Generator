@@ -169,7 +169,7 @@ const App: React.FC = () => {
   };
   
   const renderInitialView = () => (
-    <div className="flex-grow flex flex-col items-center justify-center p-4 text-center">
+    <div className="flex-grow flex flex-col items-center justify-start p-4 pt-12 text-center">
       {error && (
           <div className="w-full max-w-3xl mb-4 p-3 text-sm text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg relative">
               <strong className="font-semibold">Error:</strong> {error}
@@ -227,7 +227,7 @@ const App: React.FC = () => {
         onSignOut={handleSignOut}
       />
       
-      <main className="flex-grow flex flex-col overflow-hidden">
+      <main className={`flex-grow flex flex-col ${projectFiles === null ? 'overflow-y-auto' : 'overflow-hidden'}`}>
         {projectFiles === null ? renderInitialView() : renderIdeView()}
       </main>
 
