@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { ChatMessage, ImageFile, ProjectFile, EditorChatResponse } from '../types';
 
@@ -77,16 +76,33 @@ const SYSTEM_INSTRUCTION_EDITOR_CHAT = `You are an AI with the mind of a world-c
 
 
 const SYSTEM_INSTRUCTION_ENHANCE = `You are an AI assistant skilled in creative writing and web design concepts.
-Your task is to take a user's simple idea for a a website and expand it into a more descriptive and detailed prompt.
-This new prompt will be used to generate a website, so it should be rich with detail.
+Your task is to take a user's simple idea for a website—and potentially an accompanying image—and expand it into a more descriptive and detailed prompt.
+This new prompt will be used to generate a website, so it must be rich with specific, actionable details.
 
-RULES:
-1.  **Focus on Detail:** Add specifics about the visual style (e.g., "minimalist," "brutalist," "corporate," "playful"), color palette (e.g., "pastel colors," "monochromatic black and white," "earthy tones"), typography (e.g., "bold sans-serif fonts," "elegant serif type"), and content sections (e.g., "a hero section with a clear call-to-action," "a features grid," "a pricing table," "a contact form").
-2.  **Be Concise:** The output should be a single, fluent paragraph. Do not use lists or bullet points.
-3.  **Output Format:** Respond ONLY with the new prompt text. Do not include any explanations, greetings, or markdown formatting. JUST THE PROMPT.
+**Core Logic:**
 
-Example Input: a portfolio for a photographer
-Example Output: A visually stunning, minimalist portfolio website for a professional wedding photographer. It should feature a large hero image gallery, a clean grid layout for different photo categories, an elegant 'About Me' section with a professional headshot, and a simple contact form. The color scheme should be monochromatic with black, white, and shades of gray, using a modern serif font for headings.
+1.  **Analyze Inputs:**
+    *   **Text Prompt:** Read the user's written idea.
+    *   **Image (if provided):** This is your primary source of inspiration for the visual direction. Analyze its colors, style, mood, content, and overall aesthetic.
+
+2.  **Synthesize & Enhance:**
+    *   **If an image is present:** Your enhanced prompt MUST be heavily inspired by the image. Extract the color palette, infer the design style (e.g., modern, vintage, corporate, playful), and describe the mood. Weave these visual cues into the user's original text idea. The goal is to create a prompt that would generate a website looking and feeling like the provided image.
+    *   **If no image is present:** Expand on the user's text prompt by adding specifics about a potential visual style (e.g., "minimalist," "brutalist," "corporate"), color palette (e.g., "pastel colors," "earthy tones"), typography (e.g., "bold sans-serif fonts"), and content sections (e.g., "a hero section," "a features grid," "a contact form").
+
+3.  **Output Rules:**
+    *   **Format:** Respond with a single, fluent paragraph. Do not use lists or bullet points.
+    *   **Content:** The output must ONLY be the new, enhanced prompt text. Do not include any explanations, greetings, or markdown formatting. JUST THE PROMPT.
+
+**Example (With Image):**
+
+*   **User Prompt:** "A site for my coffee shop"
+*   **Image:** A photo of a rustic cafe with dark wood, Edison bulbs, and chalkboard menus.
+*   **Your Output:** Create a warm and rustic website for a local artisan coffee shop. The design should be inspired by the provided image, featuring a color palette of dark wood browns, warm off-whites, and charcoal grays. Use a classic serif font for headings and a clean sans-serif for body text to evoke a sense of tradition and quality. The site should include a large hero image of the cafe's interior, a section for the menu with chalkboard-style typography, an 'Our Story' section, and a simple contact form with an embedded map.
+
+**Example (Without Image):**
+
+*   **User Prompt:** "a portfolio for a photographer"
+*   **Your Output:** A visually stunning, minimalist portfolio website for a professional wedding photographer. It should feature a large hero image gallery, a clean grid layout for different photo categories, an elegant 'About Me' section with a professional headshot, and a simple contact form. The color scheme should be monochromatic with black, white, and shades of gray, using a modern serif font for headings.
 `;
 
 export async function generateProject(
@@ -243,19 +259,33 @@ Based on all this context, please respond with the required JSON object.`;
 };
 
 
-export const enhancePrompt = async (prompt: string): Promise<string> => {
+export const enhancePrompt = async (prompt: string, image: ImageFile | null): Promise<string> => {
   if (!process.env.API_KEY) {
     throw new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
   }
 
-  if (!prompt || prompt.trim().length < 5) {
-      throw new Error("Prompt is too short to enhance.");
+  if (!prompt.trim() && !image) {
+      throw new Error("A prompt or an image is required to enhance.");
   }
 
   try {
+    const textPart = { text: `Enhance this idea: "${prompt}"` };
+    
+    const contents: any = image
+      ? { parts: [
+          textPart,
+          {
+            inlineData: {
+              mimeType: image.mimeType,
+              data: image.data.split(',')[1],
+            },
+          }
+        ]}
+      : textPart.text;
+
     const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
-        contents: `Enhance this prompt: "${prompt}"`,
+        contents: contents,
         config: {
             systemInstruction: SYSTEM_INSTRUCTION_ENHANCE,
             temperature: 0.8,

@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { EXAMPLE_PROMPTS } from '../constants';
 import LinkIcon from './icons/LinkIcon';
@@ -39,11 +38,11 @@ const PromptForm: React.FC<PromptFormProps> = ({
   const [enhanceError, setEnhanceError] = useState<string | null>(null);
 
   const handleEnhanceClick = async () => {
-    if (!prompt.trim() || isEnhancing || isLoading) return;
+    if ((!prompt.trim() && !image) || isEnhancing || isLoading) return;
     setIsEnhancing(true);
     setEnhanceError(null);
     try {
-      const enhanced = await enhancePrompt(prompt);
+      const enhanced = await enhancePrompt(prompt, image);
       setPrompt(enhanced);
     } catch (err: any) {
       setEnhanceError(err.message || "Failed to enhance prompt.");
@@ -129,7 +128,7 @@ const PromptForm: React.FC<PromptFormProps> = ({
         <div className="absolute bottom-4 left-4 flex items-center gap-3">
           <button onClick={handleComingSoonClick} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label="Attach link" disabled={isLoading || isEnhancing}><LinkIcon className="w-5 h-5"/></button>
           
-          <button onClick={handleEnhanceClick} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label="Enhance with AI" disabled={!prompt.trim() || isLoading || isEnhancing}>
+          <button onClick={handleEnhanceClick} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label="Enhance with AI" disabled={(!prompt.trim() && !image) || isLoading || isEnhancing}>
             {isEnhancing ? <LoadingSpinner className="text-light-text-secondary dark:text-dark-text-secondary" /> : <SparklesIcon className="w-5 h-5"/>}
           </button>
 
