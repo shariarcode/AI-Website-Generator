@@ -1,11 +1,13 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
-import PromptForm from './components/PromptForm';
-import EditorModal from './components/EditorModal';
 import AuthModal from './components/AuthModal';
 import { generateWebsite, chatInEditor } from './services/geminiService';
 import { ChatMessage, ImageFile } from './types';
+import CodeAssistant from './components/CodeAssistant';
+import FileExplorer from './components/FileExplorer';
+import CodeEditor from './components/CodeEditor';
+import Preview from './components/Preview';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
@@ -14,11 +16,11 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isModifying, setIsModifying] = useState(false);
+  const [activeFile, setActiveFile] = useState<string | null>(null);
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
@@ -57,7 +59,7 @@ const App: React.FC = () => {
         role: 'model',
         text: "Here is the website I generated. Let me know if you'd like to make any changes!"
       }]);
-      setIsEditorOpen(true);
+      setActiveFile('index.html');
     } catch (err: any) {
       setError(err.message || 'An unknown error occurred.');
     } finally {
@@ -99,27 +101,30 @@ const App: React.FC = () => {
     }
   }, [generatedHtml, isModifying, chatHistory]);
 
-
   const handleSignIn = () => {
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
-    alert('Successfully signed in! (This is a simulation)');
+    // alert('Successfully signed in! (This is a simulation)');
   };
 
   const handleSignUp = () => {
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
-    alert('Account created and signed in! (This is a simulation)');
+    // alert('Account created and signed in! (This is a simulation)');
   };
 
   const handleSignOut = () => {
     setIsAuthenticated(false);
   };
 
+  const handleFileSelect = (file: string) => {
+    if (file === 'index.html') {
+      setActiveFile(file);
+    }
+  };
+
   return (
-    <div className="relative flex flex-col min-h-screen bg-light-bg dark:bg-dark-bg text-light-text-primary dark:text-dark-text-primary transition-colors duration-300">
-      {isDarkMode && <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-blue-900/40 via-blue-900/10 to-transparent -z-0" />}
-      
+    <div className="flex flex-col h-screen font-sans bg-dark-bg text-dark-text-primary antialiased">
       <Header 
         isDarkMode={isDarkMode} 
         toggleDarkMode={toggleDarkMode} 
@@ -128,43 +133,32 @@ const App: React.FC = () => {
         onSignOut={handleSignOut}
       />
       
-      <main className="relative z-10 flex-grow flex items-center justify-center container mx-auto px-4 pt-24 pb-8">
-        <div className="w-full max-w-3xl text-center">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            What do you want to build? <span className="font-medium text-light-text-secondary dark:text-dark-text-secondary">(with Tamim)</span>
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 dark:text-dark-text-secondary">
-            Create stunning apps & websites by chatting with AI.
-            </p>
-
-            <div className="w-full mt-10">
-            <PromptForm
-                prompt={prompt}
-                setPrompt={setPrompt}
-                handleGenerate={handleGenerate}
-                isLoading={isLoading}
-                image={image}
-                setImage={setImage}
-            />
-            </div>
-            
-            {error && (
-                <div className="mt-6 p-4 max-w-3xl w-full text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg">
-                    <strong className="font-semibold">Error:</strong> {error}
-                </div>
-            )}
-        </div>
+      <main className="flex-grow grid grid-cols-[minmax(300px,1.2fr)_minmax(200px,0.8fr)_minmax(400px,2fr)_minmax(400px,2fr)] overflow-hidden border-t border-dark-border">
+          <CodeAssistant 
+            prompt={prompt}
+            setPrompt={setPrompt}
+            image={image}
+            setImage={setImage}
+            handleGenerate={handleGenerate}
+            isLoading={isLoading}
+            chatHistory={chatHistory}
+            onSendMessage={handleEditorChatSubmit}
+            isModifying={isModifying}
+            hasGenerated={!!generatedHtml}
+            error={error}
+            setError={setError}
+          />
+          <FileExplorer
+            files={generatedHtml ? ['index.html'] : []}
+            activeFile={activeFile}
+            onFileSelect={handleFileSelect}
+          />
+          <CodeEditor
+            htmlContent={generatedHtml}
+            onHtmlContentChange={setGeneratedHtml}
+          />
+          <Preview htmlContent={generatedHtml} />
       </main>
-
-      {isEditorOpen && generatedHtml && (
-        <EditorModal 
-          htmlContent={generatedHtml} 
-          onClose={() => setIsEditorOpen(false)}
-          chatHistory={chatHistory}
-          onSendMessage={handleEditorChatSubmit}
-          isModifying={isModifying}
-        />
-      )}
 
       {isAuthModalOpen && (
         <AuthModal 

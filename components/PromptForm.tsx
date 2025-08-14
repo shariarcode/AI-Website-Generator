@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { EXAMPLE_PROMPTS } from '../constants';
 import LinkIcon from './icons/LinkIcon';
