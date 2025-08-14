@@ -34,49 +34,10 @@ const SYSTEM_INSTRUCTION_GENERATE_FRONTEND = `You are an AI with the mind of a w
 
 You are not just a code writer; you are a digital architect. Your output is the physical manifestation of a well-thought-out design plan. Do not deviate.`;
 
-<<<<<<< HEAD
 const SYSTEM_INSTRUCTION_EDITOR_CHAT = `You are an AI with the mind of a world-class senior full-stack engineer, acting as a collaborative partner in a real-time code editor. The user wants to refine a multi-file project.
 
 **Your Core Logic & Reasoning Flow:**
 
-=======
-const SYSTEM_INSTRUCTION_GENERATE_BACKEND = `You are an AI with the mind of a world-class senior backend engineer. Your purpose is to translate a user's idea into a complete, runnable, and well-structured backend application.
-
-**Your Core Logic & Reasoning Flow:**
-
-1.  **THE ARCHITECTURE (MANDATORY FIRST STEP):** Before writing any code, create a detailed plan.
-    *   **Tech Stack:** Choose a suitable language and framework based on the prompt (Default to Node.js with Express if not specified).
-    *   **File Structure:** Design a logical directory structure (e.g., \`src/routes\`, \`src/controllers\`).
-    *   **Endpoints:** List all API endpoints to be created, including HTTP method, path, and purpose.
-    *   **Data Models:** Define the schema for any data models if applicable.
-    *   **Setup Instructions:** Plan the steps for a developer to set up and run the project.
-
-2.  **IMPLEMENTATION:** Write the code for each file based on your architecture.
-    *   **Dependency Management:** Create a complete \`package.json\` with all necessary dependencies (\`express\`, \`cors\`, \`dotenv\`, \`nodemon\`, etc.).
-    *   **Modular Code:** Separate concerns into different files (e.g., server setup, routes, controller logic).
-    *   **Environment Variables:** Use a \`.env\` file for configuration like ports. Include a \`.env.example\` file.
-    *   **Clear Comments:** Add comments where the logic is complex.
-
-3.  **DOCUMENTATION (CRITICAL):** Create a \`README.md\` file that explains:
-    *   A brief project description.
-    *   Prerequisites (e.g., Node.js v18+).
-    *   Step-by-step installation instructions (\`npm install\`).
-    *   How to run the application (\`npm start\` or \`npm run dev\`).
-    *   Available API endpoints with examples.
-
-4.  **FINAL OUTPUT FORMAT:**
-    *   Your response MUST be a single JSON object that strictly adheres to the provided JSON schema.
-    *   The JSON object must contain a single key, "files", which is an array of objects.
-    *   Each object in the "files" array must have two keys: "name" (the full file path, e.g., "src/server.js") and "content" (the code for that file).
-    *   One of the files MUST be named \`README.md\`.
-    *   Your final output must ONLY be the raw JSON object. No explanations, no markdown formatting like \`\`\`json.`;
-
-
-const SYSTEM_INSTRUCTION_EDITOR_CHAT = `You are an AI with the mind of a world-class senior full-stack engineer, acting as a collaborative partner in a real-time code editor. The user wants to refine a multi-file project.
-
-**Your Core Logic & Reasoning Flow:**
-
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
 1.  **Analyze Context:** Carefully review the entire project structure, all file contents, the conversation history, and the user's latest request.
 2.  **Identify Intent & Plan:**
     *   **Modification:** The user wants to add, delete, or change code in one or more files. Plan the exact changes across all affected files.
@@ -118,7 +79,6 @@ Example Input: a portfolio for a photographer
 Example Output: A visually stunning, minimalist portfolio website for a professional wedding photographer. It should feature a large hero image gallery, a clean grid layout for different photo categories, an elegant 'About Me' section with a professional headshot, and a simple contact form. The color scheme should be monochromatic with black, white, and shades of gray, using a modern serif font for headings.
 `;
 
-<<<<<<< HEAD
 export async function generateProject(
   prompt: string,
   image: ImageFile | null,
@@ -173,138 +133,6 @@ export async function generateProject(
         onError(new Error(errorMessage));
       }
     })();
-}
-
-=======
-const backendFileSchema = {
-    type: Type.OBJECT,
-    properties: {
-        name: { type: Type.STRING },
-        content: { type: Type.STRING }
-    },
-    required: ["name", "content"]
-};
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
-
-const backendResponseSchema = {
-    type: Type.OBJECT,
-    properties: {
-        files: {
-            type: Type.ARRAY,
-            items: backendFileSchema
-        }
-    },
-    required: ["files"]
-};
-
-export async function generateProject(
-  type: 'frontend' | 'backend',
-  prompt: string,
-  image: ImageFile | null,
-  onStream: (chunk: string) => void,
-  onDone: () => void,
-  onError: (error: Error) => void
-): Promise<Record<string, string> | void> {
-    if (!process.env.API_KEY) {
-        const err = new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
-        onError(err);
-        if (type === 'backend') throw err;
-        return;
-    }
-    
-    if (type === 'frontend') {
-      // Use existing streaming logic for frontend
-      (async () => {
-        try {
-          const textPart = { text: prompt };
-          const contents: any = image
-            ? { parts: [
-                textPart,
-                {
-                  inlineData: {
-                    mimeType: image.mimeType,
-                    data: image.data.split(',')[1],
-                  },
-                }
-              ]}
-            : prompt;
-
-          const responseStream = await ai.models.generateContentStream({
-            model: "gemini-2.5-flash",
-            contents: contents,
-            config: {
-              systemInstruction: SYSTEM_INSTRUCTION_GENERATE_FRONTEND,
-              temperature: 0.7,
-              topP: 0.95,
-            }
-          });
-
-          for await (const chunk of responseStream) {
-            const chunkText = chunk.text;
-            if(chunkText) {
-              onStream(chunkText);
-            }
-          }
-          onDone();
-
-        } catch (error: any) {
-          console.error("Error generating frontend with Gemini:", error);
-          const errorMessage = error.message?.toLowerCase().includes('api key')
-            ? "AI Service is not configured. Please ensure the API_KEY environment variable is set correctly."
-            : "Failed to generate website. The AI model might be busy. Please try again later.";
-          onError(new Error(errorMessage));
-        }
-      })();
-      return;
-    } else { // Handle backend generation (non-streaming)
-        try {
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: prompt,
-                config: {
-                    systemInstruction: SYSTEM_INSTRUCTION_GENERATE_BACKEND,
-                    temperature: 0.5,
-                    topP: 0.95,
-                    responseMimeType: "application/json",
-                    responseSchema: backendResponseSchema,
-                }
-            });
-
-            let jsonString = response.text.trim();
-             if (jsonString.startsWith("```json")) {
-                jsonString = jsonString.substring(7);
-                if (jsonString.endsWith("```")) {
-                  jsonString = jsonString.slice(0, -3);
-                }
-            }
-            
-            const parsed = JSON.parse(jsonString);
-            
-            if (!parsed.files || !Array.isArray(parsed.files)) {
-                throw new Error("AI returned an invalid file structure.");
-            }
-
-            const projectFiles: Record<string, string> = {};
-            for (const file of parsed.files) {
-                if (file.name && file.content) {
-                    projectFiles[file.name] = file.content;
-                }
-            }
-            
-            if (!projectFiles['README.md']) {
-                throw new Error("AI did not include the required README.md file.");
-            }
-
-            return projectFiles;
-
-        } catch (error: any) {
-            console.error("Error generating backend with Gemini:", error);
-            const errorMessage = error.message?.toLowerCase().includes('api key')
-              ? "AI Service is not configured. Please ensure the API_KEY environment variable is set correctly."
-              : `Failed to generate backend project. ${error.message}`;
-            throw new Error(errorMessage);
-        }
-    }
 }
 
 

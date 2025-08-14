@@ -31,16 +31,10 @@ interface FileExplorerProps {
     files: string[];
     activeFile: string | null;
     onFileSelect: (file: string) => void;
-<<<<<<< HEAD
     isTab?: boolean;
 }
 
 const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFile, onFileSelect, isTab = false }) => {
-=======
-}
-
-const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFile, onFileSelect }) => {
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
     
     const sortedFiles = useMemo(() => {
         return [...files].sort((a, b) => {
@@ -61,11 +55,7 @@ const FileExplorer: React.FC<FileExplorerProps> = ({ files, activeFile, onFileSe
 
     return (
         <aside className="bg-dark-surface p-4 flex flex-col text-sm h-full">
-<<<<<<< HEAD
             {!isTab && <h3 className="font-bold text-dark-text-primary mb-4 text-base">Explorer</h3>}
-=======
-            <h3 className="font-bold text-dark-text-primary mb-4 text-base">Explorer</h3>
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
             <div className="flex-grow overflow-y-auto">
                 {sortedFiles.length > 0 ? (
                     <ul>

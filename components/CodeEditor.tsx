@@ -23,10 +23,6 @@ interface CodeEditorProps {
   projectFiles: Record<string, string> | null;
   activeFile: string | null;
   onFileContentChange: (path: string, content: string) => void;
-<<<<<<< HEAD
-=======
-  generationType: 'frontend' | 'backend';
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
 }
 
 const LoadingSpinner: React.FC = () => (
@@ -60,11 +56,7 @@ const getLanguage = (filename: string | null): string => {
     }
 };
 
-<<<<<<< HEAD
 const CodeEditor: React.FC<CodeEditorProps> = ({ projectFiles, activeFile, onFileContentChange }) => {
-=======
-const CodeEditor: React.FC<CodeEditorProps> = ({ projectFiles, activeFile, onFileContentChange, generationType }) => {
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
     const [isCopied, setIsCopied] = useState(false);
     const [isVercelModalOpen, setIsVercelModalOpen] = useState(false);
     const [isDeploying, setIsDeploying] = useState(false);
@@ -123,22 +115,14 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ projectFiles, activeFile, onFil
 
     const handlePublishClick = useCallback(() => {
         const htmlContent = projectFiles ? projectFiles['index.html'] : null;
-<<<<<<< HEAD
         if (!htmlContent) return;
-=======
-        if (!htmlContent || generationType === 'backend') return;
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
         const storedToken = localStorage.getItem('vercelToken');
         if (storedToken) {
             startDeployment(storedToken);
         } else {
             setIsVercelModalOpen(true);
         }
-<<<<<<< HEAD
     }, [startDeployment, projectFiles]);
-=======
-    }, [startDeployment, projectFiles, generationType]);
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
     
     const handleSaveTokenAndDeploy = useCallback((token: string) => {
         localStorage.setItem('vercelToken', token);
@@ -158,19 +142,10 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ projectFiles, activeFile, onFil
                 
                 {projectFiles !== null && (
                     <div className="flex items-center gap-2">
-<<<<<<< HEAD
                         <button onClick={handlePublishClick} disabled={isDeploying} className="flex items-center justify-center gap-1.5 p-1.5 text-xs font-medium text-dark-text-secondary bg-dark-bg rounded-md hover:bg-dark-border transition-colors disabled:opacity-50">
                             {isDeploying ? <LoadingSpinner /> : <UploadCloudIcon className="w-4 h-4" />}
                             {isDeploying ? 'Publishing...' : 'Publish'}
                         </button>
-=======
-                        {generationType === 'frontend' && (
-                            <button onClick={handlePublishClick} disabled={isDeploying} className="flex items-center justify-center gap-1.5 p-1.5 text-xs font-medium text-dark-text-secondary bg-dark-bg rounded-md hover:bg-dark-border transition-colors disabled:opacity-50">
-                                {isDeploying ? <LoadingSpinner /> : <UploadCloudIcon className="w-4 h-4" />}
-                                {isDeploying ? 'Publishing...' : 'Publish'}
-                            </button>
-                        )}
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
                         <button onClick={handleCopy} disabled={!activeFileContent} className="flex items-center justify-center gap-1.5 p-1.5 text-xs font-medium text-dark-text-secondary bg-dark-bg rounded-md hover:bg-dark-border transition-colors disabled:opacity-50">
                             <CopyIcon className="w-4 h-4" />
                             {isCopied ? 'Copied!' : 'Copy'}

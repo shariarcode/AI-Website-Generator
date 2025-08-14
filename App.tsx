@@ -4,7 +4,6 @@ import Header from './components/Header';
 import AuthModal from './components/AuthModal';
 import { generateProject, chatInEditor } from './services/geminiService';
 import { ChatMessage, ImageFile } from './types';
-<<<<<<< HEAD
 import PromptForm from './components/PromptForm';
 import Preview from './components/Preview';
 import CodeAssistant from './components/CodeAssistant';
@@ -25,14 +24,6 @@ const LoadingSpinner: React.FC = () => (
     </svg>
 );
 
-=======
-import CodeEditor from './components/CodeEditor';
-import PromptForm from './components/PromptForm';
-import SideBar from './components/SideBar';
-import FileExplorer from './components/FileExplorer';
-
-type GenerationType = 'frontend' | 'backend';
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
@@ -45,8 +36,6 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isModifying, setIsModifying] = useState(false);
-  const [activeFile, setActiveFile] = useState<string | null>(null);
-  const [generationType, setGenerationType] = useState<GenerationType>('frontend');
 
   // State for deployment and file actions (moved from CodeEditor)
   const [isCopied, setIsCopied] = useState(false);
@@ -84,7 +73,6 @@ const App: React.FC = () => {
     setError(null);
     setProjectFiles(null);
     setChatHistory([]);
-<<<<<<< HEAD
     
     let tempHtml = '';
     const onStream = (chunk: string) => {
@@ -118,62 +106,6 @@ const App: React.FC = () => {
     generateProject(prompt, image, onStream, onDone, onError);
 
   }, [prompt, isLoading, image]);
-=======
-    setActiveFile(null);
-    
-    if (generationType === 'frontend') {
-      let tempHtml = '';
-      const onStream = (chunk: string) => {
-        tempHtml += chunk;
-        // Batch updates to avoid too many re-renders
-        requestAnimationFrame(() => setProjectFiles({ 'index.html': tempHtml }));
-      };
-
-      const onDone = () => {
-        let finalHtml = tempHtml;
-        if (finalHtml.trim().startsWith("```html")) {
-            finalHtml = finalHtml.trim().substring(7);
-        }
-        if (finalHtml.trim().endsWith("```")) {
-            finalHtml = finalHtml.trim().slice(0, -3);
-        }
-        setProjectFiles({ 'index.html': finalHtml.trim() });
-        setChatHistory([{
-            role: 'model',
-            text: "Here is the website I generated. Let me know if you'd like to make any changes!"
-        }]);
-        setActiveFile('index.html');
-        setIsLoading(false);
-      };
-      
-      const onError = (err: Error) => {
-          setError(err.message || 'An unknown error occurred.');
-          setProjectFiles(null);
-          setIsLoading(false);
-      };
-
-      generateProject(generationType, prompt, image, onStream, onDone, onError);
-    } else { // Backend generation
-      try {
-        const files = await generateProject(generationType, prompt, null, () => {}, () => {}, (err) => { throw err; });
-        if (files) {
-          setProjectFiles(files);
-          setChatHistory([{
-            role: 'model',
-            text: "Here is the backend project I generated. You can read the README for instructions. Let me know if you'd like to make any changes!"
-          }]);
-          setActiveFile('README.md');
-        }
-      } catch (err: any) {
-        setError(err.message || 'An unknown error occurred.');
-        setProjectFiles(null);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-  }, [prompt, isLoading, image, generationType]);
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
 
   const handleEditorChatSubmit = useCallback(async (instruction: string) => {
     if (!instruction.trim() || isModifying || !projectFiles) return;
@@ -196,11 +128,6 @@ const App: React.FC = () => {
           });
           return newFiles;
         });
-<<<<<<< HEAD
-=======
-        // If the active file was updated, it will re-render. 
-        // If a new file was created, maybe switch to it? For now, keep it simple.
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
       }
 
       setChatHistory(prev => [...prev, {
@@ -219,7 +146,6 @@ const App: React.FC = () => {
       setIsModifying(false);
     }
   }, [projectFiles, isModifying, chatHistory]);
-<<<<<<< HEAD
 
     // Action handlers moved from CodeEditor
     const handleDownload = useCallback(() => {
@@ -286,8 +212,6 @@ const App: React.FC = () => {
         setIsVercelModalOpen(false);
         startDeployment(token);
     }, [startDeployment]);
-=======
->>>>>>> d12339c7711e28370510fd63f20909720fc886a1
 
   const handleSignIn = () => {
     setIsAuthenticated(true);
@@ -378,68 +302,6 @@ const App: React.FC = () => {
     </div>
   );
 
-
-  const handleFileContentChange = (path: string, content: string) => {
-    setProjectFiles(prev => (prev ? { ...prev, [path]: content } : null));
-  };
-  
-  const renderInitialView = () => (
-    <div className="flex-grow flex flex-col items-center justify-start p-4 pt-12 text-center">
-      {error && (
-          <div className="w-full max-w-3xl mb-4 p-3 text-sm text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg relative">
-              <strong className="font-semibold">Error:</strong> {error}
-              <button onClick={() => setError(null)} className="absolute top-2 right-3 font-bold text-red-200 hover:text-white">X</button>
-          </div>
-      )}
-      <div className="flex items-center gap-2 mb-2">
-          <h1 className="text-4xl sm:text-5xl font-bold text-dark-text-primary tracking-tight">AI Full-Stack Generator</h1>
-      </div>
-      <p className="text-lg text-dark-text-secondary mb-8">
-          Create and refine full-stack applications by chatting with AI.
-      </p>
-      <PromptForm
-        prompt={prompt}
-        setPrompt={setPrompt}
-        handleGenerate={handleGenerate}
-        isLoading={isLoading}
-        image={image}
-        setImage={setImage}
-        generationType={generationType}
-        setGenerationType={setGenerationType}
-      />
-    </div>
-  );
-
-  const renderIdeView = () => (
-    <div className="flex-grow grid grid-cols-12 gap-px overflow-hidden border-t bg-dark-border border-dark-border">
-      <div className="col-span-2">
-        <FileExplorer
-          files={projectFiles ? Object.keys(projectFiles) : []}
-          activeFile={activeFile}
-          onFileSelect={setActiveFile}
-        />
-      </div>
-      <div className="col-span-6">
-        <CodeEditor
-          projectFiles={projectFiles}
-          activeFile={activeFile}
-          onFileContentChange={handleFileContentChange}
-          generationType={generationType}
-        />
-      </div>
-      <div className="col-span-4">
-        <SideBar
-          generationType={generationType}
-          projectFiles={projectFiles}
-          chatHistory={chatHistory}
-          onSendMessage={handleEditorChatSubmit}
-          isModifying={isModifying}
-          error={error}
-          setError={setError}
-        />
-      </div>
-    </div>
-  );
 
   return (
     <div className="flex flex-col h-screen font-sans bg-dark-bg text-dark-text-primary antialiased">
