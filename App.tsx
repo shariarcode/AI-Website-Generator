@@ -8,6 +8,7 @@ import CodeAssistant from './components/CodeAssistant';
 import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
 import Preview from './components/Preview';
+import PromptForm from './components/PromptForm';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
@@ -104,13 +105,11 @@ const App: React.FC = () => {
   const handleSignIn = () => {
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
-    // alert('Successfully signed in! (This is a simulation)');
   };
 
   const handleSignUp = () => {
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
-    // alert('Account created and signed in! (This is a simulation)');
   };
 
   const handleSignOut = () => {
@@ -133,31 +132,54 @@ const App: React.FC = () => {
         onSignOut={handleSignOut}
       />
       
-      <main className="flex-grow grid grid-cols-[minmax(300px,1.2fr)_minmax(200px,0.8fr)_minmax(400px,2fr)_minmax(400px,2fr)] overflow-hidden border-t border-dark-border">
-          <CodeAssistant 
-            prompt={prompt}
-            setPrompt={setPrompt}
-            image={image}
-            setImage={setImage}
-            handleGenerate={handleGenerate}
-            isLoading={isLoading}
-            chatHistory={chatHistory}
-            onSendMessage={handleEditorChatSubmit}
-            isModifying={isModifying}
-            hasGenerated={!!generatedHtml}
-            error={error}
-            setError={setError}
-          />
-          <FileExplorer
-            files={generatedHtml ? ['index.html'] : []}
-            activeFile={activeFile}
-            onFileSelect={handleFileSelect}
-          />
-          <CodeEditor
-            htmlContent={generatedHtml}
-            onHtmlContentChange={setGeneratedHtml}
-          />
-          <Preview htmlContent={generatedHtml} />
+      <main className="flex-grow flex flex-col overflow-hidden">
+        {generatedHtml === null ? (
+          // Initial Generation View
+          <div className="flex-grow flex flex-col items-center justify-center p-4 text-center">
+            {error && (
+                <div className="w-full max-w-3xl mb-4 p-3 text-sm text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg relative">
+                    <strong className="font-semibold">Error:</strong> {error}
+                    <button onClick={() => setError(null)} className="absolute top-2 right-3 font-bold text-red-200 hover:text-white">X</button>
+                </div>
+            )}
+            <div className="flex items-center gap-2 mb-2">
+                <h1 className="text-4xl sm:text-5xl font-bold text-dark-text-primary tracking-tight">What do you want to build?</h1>
+                <span className="text-2xl sm:text-3xl font-semibold text-dark-text-secondary tracking-tight">(with Tamim)</span>
+            </div>
+            <p className="text-lg text-dark-text-secondary mb-8">
+                Create stunning apps & websites by chatting with AI.
+            </p>
+            <PromptForm
+              prompt={prompt}
+              setPrompt={setPrompt}
+              handleGenerate={handleGenerate}
+              isLoading={isLoading}
+              image={image}
+              setImage={setImage}
+            />
+          </div>
+        ) : (
+          // IDE View
+          <div className="flex-grow grid grid-cols-[minmax(300px,1.2fr)_minmax(200px,0.8fr)_minmax(400px,2fr)_minmax(400px,2fr)] overflow-hidden border-t border-dark-border">
+            <CodeAssistant 
+              chatHistory={chatHistory}
+              onSendMessage={handleEditorChatSubmit}
+              isModifying={isModifying}
+              error={error}
+              setError={setError}
+            />
+            <FileExplorer
+              files={generatedHtml ? ['index.html'] : []}
+              activeFile={activeFile}
+              onFileSelect={handleFileSelect}
+            />
+            <CodeEditor
+              htmlContent={generatedHtml}
+              onHtmlContentChange={setGeneratedHtml}
+            />
+            <Preview htmlContent={generatedHtml} />
+          </div>
+        )}
       </main>
 
       {isAuthModalOpen && (
