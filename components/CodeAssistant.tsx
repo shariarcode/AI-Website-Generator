@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> d12339c7711e28370510fd63f20909720fc886a1
 import React, { useState, useRef, useEffect } from 'react';
 import { ChatMessage } from '../types';
 import SparklesIcon from './icons/SparklesIcon';
@@ -47,7 +51,11 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({
         </header>
       )}
 
+<<<<<<< HEAD
       {error && (
+=======
+      {error && !isTab && (
+>>>>>>> d12339c7711e28370510fd63f20909720fc886a1
           <div className="flex-shrink-0 m-4 p-3 text-sm text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg relative">
               <strong className="font-semibold">Error:</strong> {error}
               <button onClick={() => setError(null)} className="absolute top-2 right-3 font-bold text-red-200 hover:text-white">X</button>
