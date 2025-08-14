@@ -55,47 +55,44 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({
           </div>
       )}
 
-      {/* Wrapper for scrollable content and input form */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* The scrollable chat log. */}
-        <div ref={chatContainerRef} className="flex-grow p-4 space-y-4 overflow-y-auto">
-            {chatHistory.map((msg, index) => (
-                <div key={index} className="flex items-start gap-3">
-                    <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-dark-bg flex items-center justify-center ${msg.role === 'model' ? 'text-brand-blue': ''}`}>
-                        {msg.role === 'model' ? <SparklesIcon className="w-5 h-5" /> : <UserIcon className="w-5 h-5" />}
-                    </div>
-                    <div className="flex-grow py-2 px-3 rounded-lg bg-dark-bg text-sm text-dark-text-primary whitespace-pre-wrap">{msg.text}</div>
-                </div>
-            ))}
-            {isModifying && (
-                 <div className="flex items-start gap-3 text-dark-text-secondary">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-dark-bg flex items-center justify-center text-brand-blue"><SparklesIcon className="w-5 h-5" /></div>
-                    <div className="flex-grow p-3 rounded-lg bg-dark-bg flex items-center"><LoadingSpinner /> <span className="ml-2 text-sm">Thinking...</span></div>
-                </div>
-            )}
-        </div>
-        
-        {/* The chat input area */}
-        <div className="flex-shrink-0 p-4 border-t border-dark-border">
-            <div className="relative">
-                <textarea 
-                  value={instruction} 
-                  onChange={e => setInstruction(e.target.value)} 
-                  placeholder="e.g., Change the hero title..." 
-                  className="w-full h-24 p-3 pr-12 bg-dark-bg text-sm text-dark-text-primary rounded-lg border border-dark-border focus:ring-1 focus:ring-brand-blue focus:outline-none resize-none" 
-                  disabled={isModifying} 
-                  onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendInstruction(); } }}
-                />
-                <button 
-                  onClick={handleSendInstruction} 
-                  disabled={!instruction.trim() || isModifying} 
-                  className="absolute top-3 right-3 p-2 rounded-lg bg-brand-blue text-white hover:bg-blue-600 disabled:bg-brand-blue/50" 
-                  aria-label="Send instruction"
-                >
-                    <SendIcon className="w-5 h-5" />
-                </button>
-            </div>
-        </div>
+      {/* The scrollable chat log. flex-1 allows it to grow, min-h-0 fixes scrolling in flexbox. */}
+      <div ref={chatContainerRef} className="flex-1 p-4 space-y-4 overflow-y-auto min-h-0">
+          {chatHistory.map((msg, index) => (
+              <div key={index} className="flex items-start gap-3">
+                  <div className={`flex-shrink-0 w-8 h-8 rounded-full bg-dark-bg flex items-center justify-center ${msg.role === 'model' ? 'text-brand-blue': ''}`}>
+                      {msg.role === 'model' ? <SparklesIcon className="w-5 h-5" /> : <UserIcon className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-grow py-2 px-3 rounded-lg bg-dark-bg text-sm text-dark-text-primary whitespace-pre-wrap">{msg.text}</div>
+              </div>
+          ))}
+          {isModifying && (
+               <div className="flex items-start gap-3 text-dark-text-secondary">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-dark-bg flex items-center justify-center text-brand-blue"><SparklesIcon className="w-5 h-5" /></div>
+                  <div className="flex-grow p-3 rounded-lg bg-dark-bg flex items-center"><LoadingSpinner /> <span className="ml-2 text-sm">Thinking...</span></div>
+              </div>
+          )}
+      </div>
+      
+      {/* The chat input area */}
+      <div className="flex-shrink-0 p-4 border-t border-dark-border">
+          <div className="relative">
+              <textarea 
+                value={instruction} 
+                onChange={e => setInstruction(e.target.value)} 
+                placeholder="e.g., Change the hero title..." 
+                className="w-full h-24 p-3 pr-12 bg-dark-bg text-sm text-dark-text-primary rounded-lg border border-dark-border focus:ring-1 focus:ring-brand-blue focus:outline-none resize-none" 
+                disabled={isModifying} 
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendInstruction(); } }}
+              />
+              <button 
+                onClick={handleSendInstruction} 
+                disabled={!instruction.trim() || isModifying} 
+                className="absolute top-3 right-3 p-2 rounded-lg bg-brand-blue text-white hover:bg-blue-600 disabled:bg-brand-blue/50" 
+                aria-label="Send instruction"
+              >
+                  <SendIcon className="w-5 h-5" />
+              </button>
+          </div>
       </div>
     </div>
   );
