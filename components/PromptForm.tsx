@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { EXAMPLE_PROMPTS } from '../constants';
+import { EXAMPLE_PROMPTS, BACKEND_EXAMPLE_PROMPTS } from '../constants';
 import LinkIcon from './icons/LinkIcon';
 import SparklesIcon from './icons/SparklesIcon';
 import ImageIcon from './icons/ImageIcon';
@@ -15,6 +15,8 @@ interface PromptFormProps {
   isLoading: boolean;
   image: ImageFile | null;
   setImage: (image: ImageFile | null) => void;
+  generationType: 'frontend' | 'backend';
+  setGenerationType: (type: 'frontend' | 'backend') => void;
 }
 
 const LoadingSpinner: React.FC<{className?: string}> = ({ className = "text-white" }) => (
@@ -31,6 +33,8 @@ const PromptForm: React.FC<PromptFormProps> = ({
   isLoading,
   image,
   setImage,
+  generationType,
+  setGenerationType
 }) => {
   const isButtonDisabled = isLoading || !prompt.trim();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -83,11 +87,33 @@ const PromptForm: React.FC<PromptFormProps> = ({
   const handleComingSoonClick = () => {
     alert("Feature coming soon!");
   };
+  
+  const currentExamplePrompts = generationType === 'frontend' ? EXAMPLE_PROMPTS : BACKEND_EXAMPLE_PROMPTS;
+  const placeholderText = generationType === 'frontend' 
+    ? "Type your idea and we'll bring it to life..." 
+    : "Describe the backend API you want to build...";
 
   return (
     <div className="w-full max-w-3xl text-center">
+      <div className="mb-4 flex justify-center">
+        <div className="p-1 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-lg flex gap-1">
+            <button 
+                onClick={() => setGenerationType('frontend')}
+                className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${generationType === 'frontend' ? 'bg-brand-blue text-white' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-gray-200 dark:hover:bg-dark-border'}`}
+            >
+                Frontend
+            </button>
+            <button 
+                onClick={() => setGenerationType('backend')}
+                className={`px-4 py-1.5 text-sm font-semibold rounded-md transition-colors ${generationType === 'backend' ? 'bg-brand-blue text-white' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-gray-200 dark:hover:bg-dark-border'}`}
+            >
+                Backend
+            </button>
+        </div>
+      </div>
+
       <div className="relative mb-4 bg-light-surface dark:bg-dark-surface border border-light-border dark:border-dark-border rounded-xl shadow-lg transition-colors">
-        {image && (
+        {image && generationType === 'frontend' && (
           <div className="p-3 border-b border-light-border dark:border-dark-border">
             <div className="bg-light-bg dark:bg-dark-bg rounded-lg p-2 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -107,7 +133,7 @@ const PromptForm: React.FC<PromptFormProps> = ({
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Type your idea and we'll bring it to life..."
+          placeholder={placeholderText}
           className="w-full h-36 p-4 pt-4 pb-12 bg-transparent text-lg text-light-text-primary dark:text-dark-text-primary rounded-xl focus:ring-2 focus:ring-brand-blue focus:outline-none resize-none transition-colors"
           disabled={isLoading || isEnhancing}
           onKeyDown={(e) => {
@@ -131,7 +157,9 @@ const PromptForm: React.FC<PromptFormProps> = ({
             {isEnhancing ? <LoadingSpinner className="text-light-text-secondary dark:text-dark-text-secondary" /> : <SparklesIcon className="w-5 h-5"/>}
           </button>
 
-          <button onClick={handleImageUploadClick} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label="Upload image" disabled={isLoading || isEnhancing || !!image}><ImageIcon className="w-5 h-5"/></button>
+          {generationType === 'frontend' && (
+            <button onClick={handleImageUploadClick} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text-primary dark:hover:text-dark-text-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors" aria-label="Upload image" disabled={isLoading || isEnhancing || !!image}><ImageIcon className="w-5 h-5"/></button>
+          )}
         </div>
         {enhanceError && <p className="absolute text-xs text-red-400 bottom-[-20px] left-4">{enhanceError}</p>}
       </div>
@@ -142,13 +170,13 @@ const PromptForm: React.FC<PromptFormProps> = ({
         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-semibold text-white bg-brand-blue rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue dark:focus:ring-offset-dark-bg disabled:bg-brand-blue/50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100"
       >
         {isLoading ? <LoadingSpinner /> : null}
-        {isLoading ? 'Generating...' : 'Generate Website'}
+        {isLoading ? `Generating ${generationType}...` : `Generate ${generationType === 'frontend' ? 'Website' : 'Backend'}`}
       </button>
 
       <div className="mt-8">
         <div className="flex flex-wrap justify-center items-center gap-2 sm:gap-3">
           <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary mr-2 hidden sm:inline">Or try an example:</span>
-          {EXAMPLE_PROMPTS.map((p) => (
+          {currentExamplePrompts.map((p) => (
             <button
               key={p}
               onClick={() => setPrompt(p)}

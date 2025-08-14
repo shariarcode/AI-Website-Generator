@@ -1,13 +1,13 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { ChatMessage, ImageFile } from '../types';
+import { ChatMessage, ImageFile, ProjectFile, EditorChatResponse } from '../types';
 
 // The build process replaces `process.env.API_KEY` with the actual key.
 // As per instructions, we assume it's always available and valid.
 // If not, the SDK will throw an error on API calls, which is handled below.
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-const SYSTEM_INSTRUCTION_GENERATE = `You are an AI with the mind of a world-class senior frontend engineer and UI/UX designer. Your purpose is to translate a user's idea into a single, complete, and stunningly professional single-page website. You MUST follow a strict 'design-first' methodology.
+const SYSTEM_INSTRUCTION_GENERATE_FRONTEND = `You are an AI with the mind of a world-class senior frontend engineer and UI/UX designer. Your purpose is to translate a user's idea into a single, complete, and stunningly professional single-page website. You MUST follow a strict 'design-first' methodology.
 
 **Your Core Logic & Reasoning Flow:**
 
@@ -34,34 +34,68 @@ const SYSTEM_INSTRUCTION_GENERATE = `You are an AI with the mind of a world-clas
 
 You are not just a code writer; you are a digital architect. Your output is the physical manifestation of a well-thought-out design plan. Do not deviate.`;
 
-
-const SYSTEM_INSTRUCTION_EDITOR_CHAT = `You are an AI with the mind of a world-class senior frontend engineer and UI/UX designer, acting as a helpful assistant in a real-time website editor. Your role is to be a collaborative partner, helping the user refine their website through conversation.
+const SYSTEM_INSTRUCTION_GENERATE_BACKEND = `You are an AI with the mind of a world-class senior backend engineer. Your purpose is to translate a user's idea into a complete, runnable, and well-structured backend application.
 
 **Your Core Logic & Reasoning Flow:**
 
-1.  **Analyze User Intent:** First, carefully read the user's latest message in the context of the conversation history and the current HTML. Classify the intent:
-    *   **Modification Request:** The user wants a specific change to the code (e.g., "Change the title," "Make the background blue").
-    *   **Design Question:** The user is asking for your expert opinion (e.g., "What color palette would look good?", "How can I improve this section?").
-    *   **General Query:** The user is asking a question not directly related to a code change (e.g., "What is Tailwind CSS?").
-2.  **Formulate a Plan & Response:** Based on the intent, decide on your action.
-    *   **For Modification Requests:**
-        a.  **Sanity Check:** Does this request align with good design principles? If the user asks for something that will harm the UI/UX (e.g., "make the text yellow on a white background"), do not blindly obey.
-        b.  **Plan the Change:** Identify the exact HTML elements and Tailwind classes that need to be added, removed, or modified.
-        c.  **Generate Response:** Formulate your conversational response. If you're making the change, confirm it. If you're pushing back, politely explain *why* from a design perspective and suggest a better alternative. (e.g., "That's a creative idea! However, yellow text on a white background can be difficult to read. For better accessibility, how about we try a dark gray or a deep blue instead?").
-    *   **For Design Questions:** Access your internal knowledge base of UI/UX principles. Provide a helpful, expert answer in the \`response\` field. Do not modify the code unless the user confirms they want to proceed with your suggestion.
+1.  **THE ARCHITECTURE (MANDATORY FIRST STEP):** Before writing any code, create a detailed plan.
+    *   **Tech Stack:** Choose a suitable language and framework based on the prompt (Default to Node.js with Express if not specified).
+    *   **File Structure:** Design a logical directory structure (e.g., \`src/routes\`, \`src/controllers\`).
+    *   **Endpoints:** List all API endpoints to be created, including HTTP method, path, and purpose.
+    *   **Data Models:** Define the schema for any data models if applicable.
+    *   **Setup Instructions:** Plan the steps for a developer to set up and run the project.
+
+2.  **IMPLEMENTATION:** Write the code for each file based on your architecture.
+    *   **Dependency Management:** Create a complete \`package.json\` with all necessary dependencies (\`express\`, \`cors\`, \`dotenv\`, \`nodemon\`, etc.).
+    *   **Modular Code:** Separate concerns into different files (e.g., server setup, routes, controller logic).
+    *   **Environment Variables:** Use a \`.env\` file for configuration like ports. Include a \`.env.example\` file.
+    *   **Clear Comments:** Add comments where the logic is complex.
+
+3.  **DOCUMENTATION (CRITICAL):** Create a \`README.md\` file that explains:
+    *   A brief project description.
+    *   Prerequisites (e.g., Node.js v18+).
+    *   Step-by-step installation instructions (\`npm install\`).
+    *   How to run the application (\`npm start\` or \`npm run dev\`).
+    *   Available API endpoints with examples.
+
+4.  **FINAL OUTPUT FORMAT:**
+    *   Your response MUST be a single JSON object that strictly adheres to the provided JSON schema.
+    *   The JSON object must contain a single key, "files", which is an array of objects.
+    *   Each object in the "files" array must have two keys: "name" (the full file path, e.g., "src/server.js") and "content" (the code for that file).
+    *   One of the files MUST be named \`README.md\`.
+    *   Your final output must ONLY be the raw JSON object. No explanations, no markdown formatting like \`\`\`json.`;
+
+
+const SYSTEM_INSTRUCTION_EDITOR_CHAT = `You are an AI with the mind of a world-class senior full-stack engineer, acting as a collaborative partner in a real-time code editor. The user wants to refine a multi-file project.
+
+**Your Core Logic & Reasoning Flow:**
+
+1.  **Analyze Context:** Carefully review the entire project structure, all file contents, the conversation history, and the user's latest request.
+2.  **Identify Intent & Plan:**
+    *   **Modification:** The user wants to add, delete, or change code in one or more files. Plan the exact changes across all affected files.
+    *   **Addition:** The user wants to add a new feature or file. Determine the new file's name, path, and content, and any modifications needed in other files to integrate it.
+    *   **Question:** The user is asking for advice. Provide an expert answer without modifying code.
+    *   **Sanity Check:** If a request is detrimental (e.g., introduces security vulnerabilities, bad practices), politely explain why and suggest a better approach.
 3.  **Execute and Format Output:**
     *   You MUST respond with a JSON object using this exact schema:
         \`\`\`json
         {
-          "response": "Your friendly, expert, and conversational reply to the user.",
-          "html": "The full, updated HTML code if a modification was made. Return an empty string if no code was changed."
+          "response": "Your friendly, conversational reply to the user.",
+          "updatedFiles": [
+            {
+              "name": "path/to/file1.js",
+              "content": "The full, updated content of file 1."
+            },
+            {
+              "name": "path/to/new_file.js",
+              "content": "The content of the newly created file."
+            }
+          ]
         }
         \`\`\`
-    *   **If modifying code,** return the *entire*, updated HTML document in the \`html\` field.
-    *   **If providing advice or answering a question,** return an empty string (\`""\`) in the \`html\` field.
-    *   **Final Output:** Only output the raw JSON object. Do not include any extra text, comments, or markdown formatting like \`\`\`json.
-
-Your goal is to be more than a tool; be a mentor. Guide the user towards creating a better website, leveraging your ingrained expertise in design and development.`;
+    *   The \`updatedFiles\` array should contain an object for **every file that was created or changed**.
+    *   If you are only answering a question and not changing code, the \`updatedFiles\` array should be an empty array (\`[]\`).
+    *   **Final Output:** Only output the raw JSON object. Do not include any extra text or markdown formatting.`;
 
 
 const SYSTEM_INSTRUCTION_ENHANCE = `You are an AI assistant skilled in creative writing and web design concepts.
@@ -77,54 +111,136 @@ Example Input: a portfolio for a photographer
 Example Output: A visually stunning, minimalist portfolio website for a professional wedding photographer. It should feature a large hero image gallery, a clean grid layout for different photo categories, an elegant 'About Me' section with a professional headshot, and a simple contact form. The color scheme should be monochromatic with black, white, and shades of gray, using a modern serif font for headings.
 `;
 
-export const generateWebsite = async (prompt: string, image: ImageFile | null): Promise<string> => {
-  if (!process.env.API_KEY) {
-    throw new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
-  }
-  
-  try {
-    const textPart = { text: prompt };
-    const contents: any = image 
-        ? { parts: [
-            textPart, 
-            {
-                inlineData: {
-                    mimeType: image.mimeType,
-                    data: image.data.split(',')[1], // remove the data URL prefix
-                },
-            }
-        ]} 
-        : prompt;
-
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: contents,
-        config: {
-            systemInstruction: SYSTEM_INSTRUCTION_GENERATE,
-            temperature: 0.7,
-            topP: 0.95,
-        }
-    });
-
-    let htmlContent = response.text.trim();
-    
-    // Clean up potential markdown code block fences
-    if (htmlContent.startsWith("```html")) {
-      htmlContent = htmlContent.substring(7);
-    }
-    if (htmlContent.endsWith("```")) {
-      htmlContent = htmlContent.slice(0, -3);
-    }
-
-    return htmlContent.trim();
-  } catch (error: any) {
-    console.error("Error generating website with Gemini:", error);
-    if (error.message?.toLowerCase().includes('api key')) {
-        throw new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
-    }
-    throw new Error("Failed to generate website. The AI model might be busy. Please try again later.");
-  }
+const backendFileSchema = {
+    type: Type.OBJECT,
+    properties: {
+        name: { type: Type.STRING },
+        content: { type: Type.STRING }
+    },
+    required: ["name", "content"]
 };
+
+const backendResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        files: {
+            type: Type.ARRAY,
+            items: backendFileSchema
+        }
+    },
+    required: ["files"]
+};
+
+export async function generateProject(
+  type: 'frontend' | 'backend',
+  prompt: string,
+  image: ImageFile | null,
+  onStream: (chunk: string) => void,
+  onDone: () => void,
+  onError: (error: Error) => void
+): Promise<Record<string, string> | void> {
+    if (!process.env.API_KEY) {
+        const err = new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
+        onError(err);
+        if (type === 'backend') throw err;
+        return;
+    }
+    
+    if (type === 'frontend') {
+      // Use existing streaming logic for frontend
+      (async () => {
+        try {
+          const textPart = { text: prompt };
+          const contents: any = image
+            ? { parts: [
+                textPart,
+                {
+                  inlineData: {
+                    mimeType: image.mimeType,
+                    data: image.data.split(',')[1],
+                  },
+                }
+              ]}
+            : prompt;
+
+          const responseStream = await ai.models.generateContentStream({
+            model: "gemini-2.5-flash",
+            contents: contents,
+            config: {
+              systemInstruction: SYSTEM_INSTRUCTION_GENERATE_FRONTEND,
+              temperature: 0.7,
+              topP: 0.95,
+            }
+          });
+
+          for await (const chunk of responseStream) {
+            const chunkText = chunk.text;
+            if(chunkText) {
+              onStream(chunkText);
+            }
+          }
+          onDone();
+
+        } catch (error: any) {
+          console.error("Error generating frontend with Gemini:", error);
+          const errorMessage = error.message?.toLowerCase().includes('api key')
+            ? "AI Service is not configured. Please ensure the API_KEY environment variable is set correctly."
+            : "Failed to generate website. The AI model might be busy. Please try again later.";
+          onError(new Error(errorMessage));
+        }
+      })();
+      return;
+    } else { // Handle backend generation (non-streaming)
+        try {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: prompt,
+                config: {
+                    systemInstruction: SYSTEM_INSTRUCTION_GENERATE_BACKEND,
+                    temperature: 0.5,
+                    topP: 0.95,
+                    responseMimeType: "application/json",
+                    responseSchema: backendResponseSchema,
+                }
+            });
+
+            let jsonString = response.text.trim();
+             if (jsonString.startsWith("```json")) {
+                jsonString = jsonString.substring(7);
+                if (jsonString.endsWith("```")) {
+                  jsonString = jsonString.slice(0, -3);
+                }
+            }
+            
+            const parsed = JSON.parse(jsonString);
+            
+            if (!parsed.files || !Array.isArray(parsed.files)) {
+                throw new Error("AI returned an invalid file structure.");
+            }
+
+            const projectFiles: Record<string, string> = {};
+            for (const file of parsed.files) {
+                if (file.name && file.content) {
+                    projectFiles[file.name] = file.content;
+                }
+            }
+            
+            if (!projectFiles['README.md']) {
+                throw new Error("AI did not include the required README.md file.");
+            }
+
+            return projectFiles;
+
+        } catch (error: any) {
+            console.error("Error generating backend with Gemini:", error);
+            const errorMessage = error.message?.toLowerCase().includes('api key')
+              ? "AI Service is not configured. Please ensure the API_KEY environment variable is set correctly."
+              : `Failed to generate backend project. ${error.message}`;
+            throw new Error(errorMessage);
+        }
+    }
+}
+
 
 const editorResponseSchema = {
     type: Type.OBJECT,
@@ -133,19 +249,33 @@ const editorResponseSchema = {
             type: Type.STRING,
             description: "Your friendly, conversational reply to the user."
         },
-        html: {
-            type: Type.STRING,
-            description: "The full, updated HTML code if a modification was made. Otherwise, this should be an empty string."
+        updatedFiles: {
+            type: Type.ARRAY,
+            description: "An array of files that were created or modified.",
+            items: {
+                type: Type.OBJECT,
+                properties: {
+                    name: {
+                        type: Type.STRING,
+                        description: "The full path of the file to update or create."
+                    },
+                    content: {
+                        type: Type.STRING,
+                        description: "The full, new content of the file."
+                    }
+                },
+                required: ["name", "content"]
+            }
         }
     },
-    required: ["response", "html"]
+    required: ["response", "updatedFiles"]
 };
 
 export const chatInEditor = async (
-  currentHtml: string,
+  projectFiles: Record<string, string>,
   chatHistory: ChatMessage[],
   instruction: string
-): Promise<{ response: string; html: string }> => {
+): Promise<EditorChatResponse> => {
   if (!process.env.API_KEY) {
     throw new Error("AI Service is not configured. Please ensure the API_KEY environment variable is set correctly.");
   }
@@ -153,13 +283,15 @@ export const chatInEditor = async (
   const historyString = chatHistory
     .map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.text}`)
     .join('\n');
+    
+  const projectString = Object.entries(projectFiles).map(([name, content]) => 
+    `### File: ${name}\n\`\`\`\n${content}\n\`\`\``
+  ).join('\n\n');
 
   const fullPrompt = `Here is the context for our conversation.
 
-## Current HTML Code
-\`\`\`html
-${currentHtml}
-\`\`\`
+## Current Project Files
+${projectString}
 
 ## Conversation History
 ${historyString}
@@ -194,7 +326,7 @@ Based on all this context, please respond with the required JSON object.`;
 
     return {
       response: parsedResponse.response || "I seem to be having trouble forming a thought. Could you try rephrasing?",
-      html: parsedResponse.html || "",
+      updatedFiles: parsedResponse.updatedFiles || [],
     };
 
   } catch (error: any) {

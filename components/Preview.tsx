@@ -3,15 +3,17 @@ import React from 'react';
 
 interface PreviewProps {
     htmlContent: string | null;
+    isTab?: boolean;
 }
 
-const Preview: React.FC<PreviewProps> = ({ htmlContent }) => {
+const Preview: React.FC<PreviewProps> = ({ htmlContent, isTab = false }) => {
     return (
-        <section className="bg-light-bg dark:bg-black flex flex-col">
-            <header className="p-2 flex justify-between items-center border-b border-dark-border bg-dark-bg h-[45px]">
-                <span className="text-sm font-medium px-2">Preview</span>
-                {/* Could add device toggles here in future */}
-            </header>
+        <section className="bg-light-bg dark:bg-black flex flex-col h-full">
+            {!isTab && (
+              <header className="p-2 flex justify-between items-center border-b border-dark-border bg-dark-bg h-[45px]">
+                  <span className="text-sm font-medium px-2">Preview</span>
+              </header>
+            )}
             <div className="flex-grow bg-white">
                 {htmlContent ? (
                     <iframe

@@ -2,13 +2,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import AuthModal from './components/AuthModal';
-import { generateWebsite, chatInEditor } from './services/geminiService';
+import { generateProject, chatInEditor } from './services/geminiService';
 import { ChatMessage, ImageFile } from './types';
-import CodeAssistant from './components/CodeAssistant';
-import FileExplorer from './components/FileExplorer';
 import CodeEditor from './components/CodeEditor';
-import Preview from './components/Preview';
 import PromptForm from './components/PromptForm';
+import SideBar from './components/SideBar';
+
+type GenerationType = 'frontend' | 'backend';
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
@@ -16,12 +16,13 @@ const App: React.FC = () => {
   const [image, setImage] = useState<ImageFile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
+  const [projectFiles, setProjectFiles] = useState<Record<string, string> | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isModifying, setIsModifying] = useState(false);
   const [activeFile, setActiveFile] = useState<string | null>(null);
+  const [generationType, setGenerationType] = useState<GenerationType>('frontend');
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
@@ -46,30 +47,69 @@ const App: React.FC = () => {
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || isLoading) {
-      return;
-    }
+    if (!prompt.trim() || isLoading) return;
 
     setIsLoading(true);
     setError(null);
+    setProjectFiles(null);
+    setChatHistory([]);
+    setActiveFile(null);
+    
+    if (generationType === 'frontend') {
+      let tempHtml = '';
+      const onStream = (chunk: string) => {
+        tempHtml += chunk;
+        // Batch updates to avoid too many re-renders
+        requestAnimationFrame(() => setProjectFiles({ 'index.html': tempHtml }));
+      };
 
-    try {
-      const html = await generateWebsite(prompt, image);
-      setGeneratedHtml(html);
-      setChatHistory([{
-        role: 'model',
-        text: "Here is the website I generated. Let me know if you'd like to make any changes!"
-      }]);
-      setActiveFile('index.html');
-    } catch (err: any) {
-      setError(err.message || 'An unknown error occurred.');
-    } finally {
-      setIsLoading(false);
+      const onDone = () => {
+        let finalHtml = tempHtml;
+        if (finalHtml.trim().startsWith("```html")) {
+            finalHtml = finalHtml.trim().substring(7);
+        }
+        if (finalHtml.trim().endsWith("```")) {
+            finalHtml = finalHtml.trim().slice(0, -3);
+        }
+        setProjectFiles({ 'index.html': finalHtml.trim() });
+        setChatHistory([{
+            role: 'model',
+            text: "Here is the website I generated. Let me know if you'd like to make any changes!"
+        }]);
+        setActiveFile('index.html');
+        setIsLoading(false);
+      };
+      
+      const onError = (err: Error) => {
+          setError(err.message || 'An unknown error occurred.');
+          setProjectFiles(null);
+          setIsLoading(false);
+      };
+
+      generateProject(generationType, prompt, image, onStream, onDone, onError);
+    } else { // Backend generation
+      try {
+        const files = await generateProject(generationType, prompt, null, () => {}, () => {}, (err) => { throw err; });
+        if (files) {
+          setProjectFiles(files);
+          setChatHistory([{
+            role: 'model',
+            text: "Here is the backend project I generated. You can read the README for instructions. Let me know if you'd like to make any changes!"
+          }]);
+          setActiveFile('README.md');
+        }
+      } catch (err: any) {
+        setError(err.message || 'An unknown error occurred.');
+        setProjectFiles(null);
+      } finally {
+        setIsLoading(false);
+      }
     }
-  }, [prompt, isLoading, image]);
+
+  }, [prompt, isLoading, image, generationType]);
 
   const handleEditorChatSubmit = useCallback(async (instruction: string) => {
-    if (!instruction.trim() || isModifying || !generatedHtml) return;
+    if (!instruction.trim() || isModifying || !projectFiles) return;
 
     setIsModifying(true);
     setError(null);
@@ -79,10 +119,18 @@ const App: React.FC = () => {
     setChatHistory(newHistory);
 
     try {
-      const { response, html } = await chatInEditor(generatedHtml, newHistory, instruction);
+      const { response, updatedFiles } = await chatInEditor(projectFiles, newHistory, instruction);
       
-      if (html && html.trim() !== '') {
-        setGeneratedHtml(html);
+      if (updatedFiles && updatedFiles.length > 0) {
+        setProjectFiles(prevFiles => {
+          const newFiles = { ...prevFiles };
+          updatedFiles.forEach(file => {
+            newFiles[file.name] = file.content;
+          });
+          return newFiles;
+        });
+        // If the active file was updated, it will re-render. 
+        // If a new file was created, maybe switch to it? For now, keep it simple.
       }
 
       setChatHistory(prev => [...prev, {
@@ -100,7 +148,7 @@ const App: React.FC = () => {
     } finally {
       setIsModifying(false);
     }
-  }, [generatedHtml, isModifying, chatHistory]);
+  }, [projectFiles, isModifying, chatHistory]);
 
   const handleSignIn = () => {
     setIsAuthenticated(true);
@@ -116,11 +164,58 @@ const App: React.FC = () => {
     setIsAuthenticated(false);
   };
 
-  const handleFileSelect = (file: string) => {
-    if (file === 'index.html') {
-      setActiveFile(file);
-    }
+  const handleFileContentChange = (path: string, content: string) => {
+    setProjectFiles(prev => (prev ? { ...prev, [path]: content } : null));
   };
+  
+  const renderInitialView = () => (
+    <div className="flex-grow flex flex-col items-center justify-center p-4 text-center">
+      {error && (
+          <div className="w-full max-w-3xl mb-4 p-3 text-sm text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg relative">
+              <strong className="font-semibold">Error:</strong> {error}
+              <button onClick={() => setError(null)} className="absolute top-2 right-3 font-bold text-red-200 hover:text-white">X</button>
+          </div>
+      )}
+      <div className="flex items-center gap-2 mb-2">
+          <h1 className="text-4xl sm:text-5xl font-bold text-dark-text-primary tracking-tight">AI Full-Stack Generator</h1>
+      </div>
+      <p className="text-lg text-dark-text-secondary mb-8">
+          Create and refine full-stack applications by chatting with AI.
+      </p>
+      <PromptForm
+        prompt={prompt}
+        setPrompt={setPrompt}
+        handleGenerate={handleGenerate}
+        isLoading={isLoading}
+        image={image}
+        setImage={setImage}
+        generationType={generationType}
+        setGenerationType={setGenerationType}
+      />
+    </div>
+  );
+
+  const renderIdeView = () => (
+    <div className="flex-grow grid grid-cols-[minmax(0,_3fr),minmax(0,_2fr)] gap-px overflow-hidden border-t bg-dark-border border-dark-border">
+      <CodeEditor
+        projectFiles={projectFiles}
+        activeFile={activeFile}
+        onFileContentChange={handleFileContentChange}
+        generationType={generationType}
+      />
+      <SideBar
+        generationType={generationType}
+        projectFiles={projectFiles}
+        activeFile={activeFile}
+        onFileSelect={setActiveFile}
+        chatHistory={chatHistory}
+        onSendMessage={handleEditorChatSubmit}
+        isModifying={isModifying}
+        error={error}
+        setError={setError}
+      />
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-screen font-sans bg-dark-bg text-dark-text-primary antialiased">
@@ -133,53 +228,7 @@ const App: React.FC = () => {
       />
       
       <main className="flex-grow flex flex-col overflow-hidden">
-        {generatedHtml === null ? (
-          // Initial Generation View
-          <div className="flex-grow flex flex-col items-center justify-center p-4 text-center">
-            {error && (
-                <div className="w-full max-w-3xl mb-4 p-3 text-sm text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg relative">
-                    <strong className="font-semibold">Error:</strong> {error}
-                    <button onClick={() => setError(null)} className="absolute top-2 right-3 font-bold text-red-200 hover:text-white">X</button>
-                </div>
-            )}
-            <div className="flex items-center gap-2 mb-2">
-                <h1 className="text-4xl sm:text-5xl font-bold text-dark-text-primary tracking-tight">What do you want to build?</h1>
-                <span className="text-2xl sm:text-3xl font-semibold text-dark-text-secondary tracking-tight">(with Tamim)</span>
-            </div>
-            <p className="text-lg text-dark-text-secondary mb-8">
-                Create stunning apps & websites by chatting with AI.
-            </p>
-            <PromptForm
-              prompt={prompt}
-              setPrompt={setPrompt}
-              handleGenerate={handleGenerate}
-              isLoading={isLoading}
-              image={image}
-              setImage={setImage}
-            />
-          </div>
-        ) : (
-          // IDE View
-          <div className="flex-grow grid grid-cols-[minmax(300px,1.2fr)_minmax(200px,0.8fr)_minmax(400px,2fr)_minmax(400px,2fr)] overflow-hidden border-t border-dark-border">
-            <CodeAssistant 
-              chatHistory={chatHistory}
-              onSendMessage={handleEditorChatSubmit}
-              isModifying={isModifying}
-              error={error}
-              setError={setError}
-            />
-            <FileExplorer
-              files={generatedHtml ? ['index.html'] : []}
-              activeFile={activeFile}
-              onFileSelect={handleFileSelect}
-            />
-            <CodeEditor
-              htmlContent={generatedHtml}
-              onHtmlContentChange={setGeneratedHtml}
-            />
-            <Preview htmlContent={generatedHtml} />
-          </div>
-        )}
+        {projectFiles === null ? renderInitialView() : renderIdeView()}
       </main>
 
       {isAuthModalOpen && (

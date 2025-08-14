@@ -13,3 +13,13 @@ export interface ImageFile {
   mimeType: string;
   name: string;
 }
+
+export interface ProjectFile {
+    name: string;
+    content: string;
+}
+
+export interface EditorChatResponse {
+    response: string;
+    updatedFiles: ProjectFile[];
+}

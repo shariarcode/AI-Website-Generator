@@ -11,6 +11,7 @@ interface CodeAssistantProps {
   isModifying: boolean;
   error: string | null;
   setError: (error: string | null) => void;
+  isTab?: boolean;
 }
 
 const LoadingSpinner: React.FC<{className?: string}> = ({ className = "text-white" }) => (
@@ -21,7 +22,7 @@ const LoadingSpinner: React.FC<{className?: string}> = ({ className = "text-whit
 );
 
 const CodeAssistant: React.FC<CodeAssistantProps> = ({
-  chatHistory, onSendMessage, isModifying, error, setError
+  chatHistory, onSendMessage, isModifying, error, setError, isTab = false
 }) => {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const [instruction, setInstruction] = useState('');
@@ -40,12 +41,14 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({
   };
 
   return (
-    <aside className="bg-dark-surface border-r border-dark-border flex flex-col">
-        <header className="p-4 border-b border-dark-border h-[57px] flex items-center">
-            <h2 className="font-bold text-lg">Code Assistant</h2>
-        </header>
+    <div className="bg-dark-surface flex flex-col h-full">
+        {!isTab && (
+          <header className="p-4 border-b border-dark-border h-[57px] flex items-center">
+              <h2 className="font-bold text-lg">Code Assistant</h2>
+          </header>
+        )}
 
-        {error && (
+        {error && !isTab && (
             <div className="m-4 p-3 text-sm text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg relative">
                 <strong className="font-semibold">Error:</strong> {error}
                 <button onClick={() => setError(null)} className="absolute top-2 right-3 font-bold text-red-200 hover:text-white">X</button>
@@ -78,7 +81,7 @@ const CodeAssistant: React.FC<CodeAssistantProps> = ({
                 </div>
             </div>
         </div>
-    </aside>
+    </div>
   );
 };
 

@@ -4,10 +4,11 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Website Generator</title>
+    <title>AI Full-Stack Generator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-okaidia.min.css" />
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
@@ -17,6 +18,7 @@
           extend: {
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
+              mono: ['Fira Code', 'monospace'],
             },
             colors: {
               'brand-blue': '#3B82F6',
@@ -37,13 +39,85 @@
         }
       }
     </script>
+    <style>
+      /* Custom styles for a better full-stack dev experience */
+      
+      /* react-simple-code-editor alignment and focus */
+      .editor-container .prism-editor__textarea:focus {
+        outline: none;
+      }
+      .editor-container .prism-editor__container, 
+      .editor-container .prism-editor__textarea {
+        line-height: 1.5rem !important;
+        padding: 1rem 0.5rem !important;
+      }
+      .line-numbers {
+        font-family: 'Fira Code', monospace;
+        line-height: 1.5rem !important;
+        padding: 1rem 0.5rem 1rem 1rem !important;
+      }
+      
+      /* Tailwind Prose overrides for markdown rendering */
+      .prose-custom {
+        color: #9CA3AF;
+      }
+      .prose-custom h1, .prose-custom h2, .prose-custom h3, .prose-custom h4, .prose-custom h5, .prose-custom h6 {
+        color: #F3F4F6;
+      }
+      .prose-custom a {
+        color: #3B82F6;
+      }
+      .prose-custom strong {
+        color: #F3F4F6;
+      }
+      .prose-custom blockquote {
+        border-left-color: #2A2A2A;
+        color: #9CA3AF;
+      }
+      .prose-custom ul > li::marker {
+        color: #2A2A2A;
+      }
+      .prose-custom hr {
+        border-color: #2A2A2A;
+      }
+      .prose-custom code {
+        background-color: #1A1A1A;
+        color: #F3F4F6;
+        padding: 0.2em 0.4em;
+        margin: 0;
+        font-size: 85%;
+        border-radius: 6px;
+        border: 1px solid #2A2A2A;
+      }
+      .prose-custom pre {
+        background-color: #0A0A0A !important;
+        border: 1px solid #2A2A2A;
+        padding: 1em;
+        border-radius: 8px;
+        color: #F3F4F6;
+      }
+      .prose-custom pre code {
+        background-color: transparent;
+        padding: 0;
+        margin: 0;
+        font-size: inherit;
+        border-radius: 0;
+        color: inherit;
+        border: none;
+      }
+    </style>
 <script type="importmap">
 {
   "imports": {
-    "react/": "https://esm.sh/react@^19.1.1/",
-    "react": "https://esm.sh/react@^19.1.1",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.13.0"
+    "react/": "https://esm.sh/react@^18.2.0/",
+    "react": "https://esm.sh/react@^18.2.0",
+    "react-dom/": "https://esm.sh/react-dom@^18.2.0/",
+    "react-simple-code-editor": "https://esm.sh/react-simple-code-editor@0.13.1",
+    "prismjs/": "https://esm.sh/prismjs@1.29.0/",
+    "react-markdown": "https://esm.sh/react-markdown@9.0.1",
+    "remark-gfm": "https://esm.sh/remark-gfm@4.0.0",
+    "@google/genai": "https://esm.sh/@google/genai@^1.13.0",
+    "prismjs": "https://esm.sh/prismjs@^1.30.0"
   }
 }
 </script>
