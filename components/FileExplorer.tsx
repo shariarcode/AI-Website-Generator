@@ -1,6 +1,5 @@
 
 import React from 'react';
-import DocumentIcon from './icons/DocumentIcon'; // Assuming a generic document icon exists or is created
 
 const FileExplorer: React.FC<{
     files: string[];

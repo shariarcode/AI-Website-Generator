@@ -134,7 +134,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ htmlContent, onHtmlContentChang
                             ))}
                         </div>
                         <textarea
-                            value={htmlContent}
+                            value={htmlContent || ''}
                             onChange={(e) => onHtmlContentChange(e.target.value)}
                             className="flex-grow p-4 pl-2 font-mono text-sm bg-transparent resize-none focus:outline-none text-dark-text-primary leading-6"
                             spellCheck="false"
