@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { DailyLimit } from '../types';
 import { DAILY_GENERATION_LIMIT } from '../constants';
 
-const LOCAL_STORAGE_KEY = 'aiWebsiteGeneratorLimit';
+const LOCAL_STORAGE_KEY = 'buildWebsiteWithTamimLimit';
 
 export const useDailyLimit = () => {
   const [limit, setLimit] = useState<DailyLimit>({

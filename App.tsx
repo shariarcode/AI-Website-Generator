@@ -162,7 +162,7 @@ const App: React.FC = () => {
         .then(function(content: Blob) {
             const link = document.createElement('a');
             link.href = URL.createObjectURL(content);
-            link.download = "ai-generated-project.zip";
+            link.download = "tamim-generated-project.zip";
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -236,7 +236,7 @@ const App: React.FC = () => {
           </div>
       )}
       <div className="flex items-center gap-2 mb-2">
-          <h1 className="text-4xl sm:text-5xl font-bold text-dark-text-primary tracking-tight">AI Full-Stack Generator</h1>
+          <h1 className="text-4xl sm:text-5xl font-bold text-dark-text-primary tracking-tight">Build Website With Tamim</h1>
       </div>
       <p className="text-lg text-dark-text-secondary mb-8">
           Create and refine websites by chatting with AI.

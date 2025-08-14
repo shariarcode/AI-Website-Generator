@@ -22,7 +22,7 @@ export const deployToVercel = async (htmlContent: string, token: string): Promis
         'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
-        name: 'ai-generated-site',
+        name: 'tamim-generated-site',
         files: [
           {
             file: 'index.html',
