@@ -1,3 +1,4 @@
+
 export const EXAMPLE_PROMPTS = [
   "A sleek dashboard for a financial tech startup",
   "A minimal landing page for a new SaaS product",

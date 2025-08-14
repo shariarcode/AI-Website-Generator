@@ -1,5 +1,5 @@
 {
-  "name": "AI Website Generator",
-  "description": "A free-to-use AI-powered website generator that creates stunning, ready-to-use websites from a simple text prompt.",
+  "name": "AI Full-Stack Generator",
+  "description": "An AI-powered developer tool that generates and refines full-stack applications from a simple text prompt.",
   "requestFramePermissions": []
 }

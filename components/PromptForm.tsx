@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { EXAMPLE_PROMPTS } from '../constants';
 import LinkIcon from './icons/LinkIcon';
@@ -82,6 +83,8 @@ const PromptForm: React.FC<PromptFormProps> = ({
   const handleComingSoonClick = () => {
     alert("Feature coming soon!");
   };
+  
+  const placeholderText = "Type your idea and we'll bring it to life...";
 
   return (
     <div className="w-full max-w-3xl text-center">
@@ -106,7 +109,7 @@ const PromptForm: React.FC<PromptFormProps> = ({
         <textarea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
-          placeholder="Type your idea and we'll bring it to life..."
+          placeholder={placeholderText}
           className="w-full h-36 p-4 pt-4 pb-12 bg-transparent text-lg text-light-text-primary dark:text-dark-text-primary rounded-xl focus:ring-2 focus:ring-brand-blue focus:outline-none resize-none transition-colors"
           disabled={isLoading || isEnhancing}
           onKeyDown={(e) => {
@@ -141,7 +144,7 @@ const PromptForm: React.FC<PromptFormProps> = ({
         className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3 text-base font-semibold text-white bg-brand-blue rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-blue dark:focus:ring-offset-dark-bg disabled:bg-brand-blue/50 disabled:cursor-not-allowed transition-all duration-300 transform hover:scale-105 disabled:scale-100"
       >
         {isLoading ? <LoadingSpinner /> : null}
-        {isLoading ? 'Generating...' : 'Generate Website'}
+        {isLoading ? 'Generating Website...' : 'Generate Website'}
       </button>
 
       <div className="mt-8">

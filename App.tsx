@@ -1,11 +1,29 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
-import PromptForm from './components/PromptForm';
-import EditorModal from './components/EditorModal';
 import AuthModal from './components/AuthModal';
-import { generateWebsite, chatInEditor } from './services/geminiService';
+import { generateProject, chatInEditor } from './services/geminiService';
 import { ChatMessage, ImageFile } from './types';
+import PromptForm from './components/PromptForm';
+import Preview from './components/Preview';
+import CodeAssistant from './components/CodeAssistant';
+
+import DownloadIcon from './components/icons/DownloadIcon';
+import CopyIcon from './components/icons/CopyIcon';
+import UploadCloudIcon from './components/icons/UploadCloudIcon';
+import VercelAuthModal from './components/VercelAuthModal';
+import { deployToVercel } from './services/vercelService';
+
+
+declare const JSZip: any;
+
+const LoadingSpinner: React.FC = () => (
+    <svg className="animate-spin h-5 w-5 text-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+);
+
 
 const App: React.FC = () => {
   const [isDarkMode, setIsDarkMode] = useState(true); // Default to dark mode
@@ -13,12 +31,18 @@ const App: React.FC = () => {
   const [image, setImage] = useState<ImageFile | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [generatedHtml, setGeneratedHtml] = useState<string | null>(null);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [projectFiles, setProjectFiles] = useState<Record<string, string> | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isModifying, setIsModifying] = useState(false);
+
+  // State for deployment and file actions (moved from CodeEditor)
+  const [isCopied, setIsCopied] = useState(false);
+  const [isVercelModalOpen, setIsVercelModalOpen] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deploymentResult, setDeploymentResult] = useState<{ url: string | null; error: string | null }>({ url: null, error: null });
+
 
   useEffect(() => {
     const storedTheme = localStorage.getItem('theme');
@@ -43,30 +67,48 @@ const App: React.FC = () => {
   const toggleDarkMode = () => setIsDarkMode(!isDarkMode);
   
   const handleGenerate = useCallback(async () => {
-    if (!prompt.trim() || isLoading) {
-      return;
-    }
+    if (!prompt.trim() || isLoading) return;
 
     setIsLoading(true);
     setError(null);
+    setProjectFiles(null);
+    setChatHistory([]);
+    
+    let tempHtml = '';
+    const onStream = (chunk: string) => {
+      tempHtml += chunk;
+      // Batch updates to avoid too many re-renders
+      requestAnimationFrame(() => setProjectFiles({ 'index.html': tempHtml }));
+    };
 
-    try {
-      const html = await generateWebsite(prompt, image);
-      setGeneratedHtml(html);
+    const onDone = () => {
+      let finalHtml = tempHtml;
+      if (finalHtml.trim().startsWith("```html")) {
+          finalHtml = finalHtml.trim().substring(7);
+      }
+      if (finalHtml.trim().endsWith("```")) {
+          finalHtml = finalHtml.trim().slice(0, -3);
+      }
+      setProjectFiles({ 'index.html': finalHtml.trim() });
       setChatHistory([{
-        role: 'model',
-        text: "Here is the website I generated. Let me know if you'd like to make any changes!"
+          role: 'model',
+          text: "Here is the website I generated. Let me know if you'd like to make any changes!"
       }]);
-      setIsEditorOpen(true);
-    } catch (err: any) {
-      setError(err.message || 'An unknown error occurred.');
-    } finally {
       setIsLoading(false);
-    }
+    };
+    
+    const onError = (err: Error) => {
+        setError(err.message || 'An unknown error occurred.');
+        setProjectFiles(null);
+        setIsLoading(false);
+    };
+
+    generateProject(prompt, image, onStream, onDone, onError);
+
   }, [prompt, isLoading, image]);
 
   const handleEditorChatSubmit = useCallback(async (instruction: string) => {
-    if (!instruction.trim() || isModifying || !generatedHtml) return;
+    if (!instruction.trim() || isModifying || !projectFiles) return;
 
     setIsModifying(true);
     setError(null);
@@ -76,10 +118,16 @@ const App: React.FC = () => {
     setChatHistory(newHistory);
 
     try {
-      const { response, html } = await chatInEditor(generatedHtml, newHistory, instruction);
+      const { response, updatedFiles } = await chatInEditor(projectFiles, newHistory, instruction);
       
-      if (html && html.trim() !== '') {
-        setGeneratedHtml(html);
+      if (updatedFiles && updatedFiles.length > 0) {
+        setProjectFiles(prevFiles => {
+          const newFiles = { ...prevFiles };
+          updatedFiles.forEach(file => {
+            newFiles[file.name] = file.content;
+          });
+          return newFiles;
+        });
       }
 
       setChatHistory(prev => [...prev, {
@@ -97,29 +145,166 @@ const App: React.FC = () => {
     } finally {
       setIsModifying(false);
     }
-  }, [generatedHtml, isModifying, chatHistory]);
+  }, [projectFiles, isModifying, chatHistory]);
 
+    // Action handlers moved from CodeEditor
+    const handleDownload = useCallback(() => {
+        if (!projectFiles) return;
+        if (typeof JSZip === 'undefined') {
+            alert('Could not create ZIP file. JSZip library not found.');
+            return;
+        }
+        const zip = new JSZip();
+        for (const [name, content] of Object.entries(projectFiles)) {
+            zip.file(name, content);
+        }
+        zip.generateAsync({ type: "blob" })
+        .then(function(content: Blob) {
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(content);
+            link.download = "ai-generated-project.zip";
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }, [projectFiles]);
+
+    const handleCopy = useCallback(() => {
+        const contentToCopy = projectFiles ? projectFiles['index.html'] : null;
+        if (!contentToCopy) return;
+        navigator.clipboard.writeText(contentToCopy).then(() => {
+            setIsCopied(true);
+            setTimeout(() => setIsCopied(false), 2000);
+        });
+    }, [projectFiles]);
+
+    const startDeployment = useCallback(async (token: string) => {
+        const htmlContent = projectFiles ? projectFiles['index.html'] : null;
+        if (!htmlContent) return;
+        setIsDeploying(true);
+        setDeploymentResult({ url: null, error: null });
+        try {
+            const url = await deployToVercel(htmlContent, token);
+            setDeploymentResult({ url, error: null });
+        } catch (err: any) {
+            setDeploymentResult({ url: null, error: err.message || "Deployment failed." });
+            if (err.message?.toLowerCase().includes('invalid token')) {
+                localStorage.removeItem('vercelToken');
+            }
+        } finally {
+            setIsDeploying(false);
+        }
+    }, [projectFiles]);
+
+    const handlePublishClick = useCallback(() => {
+        const htmlContent = projectFiles ? projectFiles['index.html'] : null;
+        if (!htmlContent) return;
+        const storedToken = localStorage.getItem('vercelToken');
+        if (storedToken) {
+            startDeployment(storedToken);
+        } else {
+            setIsVercelModalOpen(true);
+        }
+    }, [startDeployment, projectFiles]);
+    
+    const handleSaveTokenAndDeploy = useCallback((token: string) => {
+        localStorage.setItem('vercelToken', token);
+        setIsVercelModalOpen(false);
+        startDeployment(token);
+    }, [startDeployment]);
 
   const handleSignIn = () => {
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
-    alert('Successfully signed in! (This is a simulation)');
   };
 
   const handleSignUp = () => {
     setIsAuthenticated(true);
     setIsAuthModalOpen(false);
-    alert('Account created and signed in! (This is a simulation)');
   };
 
   const handleSignOut = () => {
     setIsAuthenticated(false);
   };
+  
+  const renderInitialView = () => (
+    <div className="flex-grow flex flex-col items-center justify-start p-4 pt-12 text-center">
+      {error && (
+          <div className="w-full max-w-3xl mb-4 p-3 text-sm text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg relative">
+              <strong className="font-semibold">Error:</strong> {error}
+              <button onClick={() => setError(null)} className="absolute top-2 right-3 font-bold text-red-200 hover:text-white">X</button>
+          </div>
+      )}
+      <div className="flex items-center gap-2 mb-2">
+          <h1 className="text-4xl sm:text-5xl font-bold text-dark-text-primary tracking-tight">AI Full-Stack Generator</h1>
+      </div>
+      <p className="text-lg text-dark-text-secondary mb-8">
+          Create and refine websites by chatting with AI.
+      </p>
+      <PromptForm
+        prompt={prompt}
+        setPrompt={setPrompt}
+        handleGenerate={handleGenerate}
+        isLoading={isLoading}
+        image={image}
+        setImage={setImage}
+      />
+    </div>
+  );
+
+  const renderIdeView = () => (
+    <div className="flex-grow grid grid-cols-2 gap-px overflow-hidden border-t bg-dark-border border-dark-border">
+      <section className="bg-dark-bg flex flex-col">
+        <header className="p-2 flex justify-between items-center border-b border-dark-border bg-dark-surface h-[45px]">
+          <span className="text-sm font-medium px-2">Preview</span>
+          {projectFiles !== null && (
+            <div className="flex items-center gap-2">
+              <button onClick={handlePublishClick} disabled={isDeploying} className="flex items-center justify-center gap-1.5 p-1.5 text-xs font-medium text-dark-text-secondary bg-dark-bg rounded-md hover:bg-dark-border transition-colors disabled:opacity-50">
+                  {isDeploying ? <LoadingSpinner /> : <UploadCloudIcon className="w-4 h-4" />}
+                  {isDeploying ? 'Publishing...' : 'Publish'}
+              </button>
+              <button onClick={handleCopy} disabled={!projectFiles['index.html']} className="flex items-center justify-center gap-1.5 p-1.5 text-xs font-medium text-dark-text-secondary bg-dark-bg rounded-md hover:bg-dark-border transition-colors disabled:opacity-50">
+                  <CopyIcon className="w-4 h-4" />
+                  {isCopied ? 'Copied!' : 'Copy'}
+              </button>
+              <button onClick={handleDownload} className="flex items-center justify-center gap-1.5 p-1.5 text-xs font-medium text-dark-text-secondary bg-dark-bg rounded-md hover:bg-dark-border transition-colors">
+                  <DownloadIcon className="w-4 h-4" />
+                  Download
+              </button>
+            </div>
+          )}
+        </header>
+
+        {deploymentResult.url && (
+            <div className="text-xs p-2 bg-dark-surface border-b border-dark-border">
+            <span className="text-green-400 font-semibold">Published: </span>
+            <a href={deploymentResult.url} target="_blank" rel="noopener noreferrer" className="text-brand-blue hover:underline break-all">{deploymentResult.url}</a>
+            </div>
+        )}
+        {deploymentResult.error && (
+            <p className="text-xs p-2 text-red-400 font-semibold bg-dark-surface border-b border-dark-border">Error: {deploymentResult.error}</p>
+        )}
+
+        <div className="flex-grow relative">
+            <Preview htmlContent={projectFiles ? projectFiles['index.html'] : null} />
+        </div>
+      </section>
+
+      <div className="border-l border-dark-border">
+        <CodeAssistant
+          chatHistory={chatHistory}
+          onSendMessage={handleEditorChatSubmit}
+          isModifying={isModifying}
+          error={error}
+          setError={setError}
+        />
+      </div>
+    </div>
+  );
+
 
   return (
-    <div className="relative flex flex-col min-h-screen bg-light-bg dark:bg-dark-bg text-light-text-primary dark:text-dark-text-primary transition-colors duration-300">
-      {isDarkMode && <div className="absolute top-0 inset-x-0 h-[500px] bg-gradient-to-b from-blue-900/40 via-blue-900/10 to-transparent -z-0" />}
-      
+    <div className="flex flex-col h-screen font-sans bg-dark-bg text-dark-text-primary antialiased">
       <Header 
         isDarkMode={isDarkMode} 
         toggleDarkMode={toggleDarkMode} 
@@ -128,49 +313,23 @@ const App: React.FC = () => {
         onSignOut={handleSignOut}
       />
       
-      <main className="relative z-10 flex-grow flex items-center justify-center container mx-auto px-4 pt-24 pb-8">
-        <div className="w-full max-w-3xl text-center">
-            <h2 className="text-3xl sm:text-5xl md:text-6xl font-extrabold tracking-tight text-gray-900 dark:text-white">
-            What do you want to build? <span className="font-medium text-light-text-secondary dark:text-dark-text-secondary">(with Tamim)</span>
-            </h2>
-            <p className="mt-4 max-w-2xl mx-auto text-lg sm:text-xl text-gray-600 dark:text-dark-text-secondary">
-            Create stunning apps & websites by chatting with AI.
-            </p>
-
-            <div className="w-full mt-10">
-            <PromptForm
-                prompt={prompt}
-                setPrompt={setPrompt}
-                handleGenerate={handleGenerate}
-                isLoading={isLoading}
-                image={image}
-                setImage={setImage}
-            />
-            </div>
-            
-            {error && (
-                <div className="mt-6 p-4 max-w-3xl w-full text-left bg-red-950/80 border border-red-800 text-red-200 rounded-lg">
-                    <strong className="font-semibold">Error:</strong> {error}
-                </div>
-            )}
-        </div>
+      <main className={`flex-grow flex flex-col ${projectFiles === null ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+        {projectFiles === null ? renderInitialView() : renderIdeView()}
       </main>
-
-      {isEditorOpen && generatedHtml && (
-        <EditorModal 
-          htmlContent={generatedHtml} 
-          onClose={() => setIsEditorOpen(false)}
-          chatHistory={chatHistory}
-          onSendMessage={handleEditorChatSubmit}
-          isModifying={isModifying}
-        />
-      )}
 
       {isAuthModalOpen && (
         <AuthModal 
           onClose={() => setIsAuthModalOpen(false)}
           onSignIn={handleSignIn}
           onSignUp={handleSignUp}
+        />
+      )}
+
+      {isVercelModalOpen && (
+        <VercelAuthModal 
+          onClose={() => setIsVercelModalOpen(false)}
+          onSave={handleSaveTokenAndDeploy}
+          isDeploying={isDeploying}
         />
       )}
     </div>
